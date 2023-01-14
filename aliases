@@ -1,0 +1,53 @@
+alias ws="work-start"
+alias we="work-end"
+alias nrd="npm run dev"
+
+# Git shortcuts
+alias gps="git push"
+alias gpl="git pull"
+alias gmm="git merge master --no-edit"
+alias gfmm="git fetch && git merge origin/master --no-edit"
+alias gmd="git merge develop --no-edit"
+alias gfmd="git fetch && git merge origin/develop --no-edit"
+alias gcd="git checkout develop"
+alias gcdp="gcd && gpl"
+alias gcmp="gcm && gpl"
+alias gmc="git merge --continue"
+alias gma="git merge --abort"
+alias gc-="git checkout -"
+alias gsd="git stash && gcdp && gsp"
+alias gsl="git stash && gpl && gsp"
+alias gsp="git stash pop"
+alias gsmd="git stash && gfmd && gsp"
+
+alias pr="gh pr create"
+alias prm="gh pr create --base master"
+
+gfm() {
+  git fetch
+  git merge "$1" --no-edit
+}
+gfmo() {
+  git fetch
+  git merge origin/"$1" --no-edit
+}
+gupr() { 
+  git checkout "$1" 
+  gpl
+  gfmd
+  gps
+}
+gfc() {
+  git fetch
+  git checkout "$1"
+}
+prb() {
+  gh pr create --base "$1"
+}
+
+# General Shortcuts
+alias kn="killall -9 node"
+
+kill-port() {
+  lsof -t -i tcp:"$1" | xargs kill
+}

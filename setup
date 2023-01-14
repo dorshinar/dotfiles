@@ -1,0 +1,12 @@
+#!/bin/zsh
+
+ROOT_DIRECTORY="$HOME/git/dotfiles"
+
+echo "🚀 Setup links from $ROOT_DIRECTORY"
+
+ln -vnfs "$ROOT_DIRECTORY" "$HOME/.dotfiles"
+ln -vnfs "$ROOT_DIRECTORY/.zshrc" "$HOME/.zshrc"
+ln -vnfs "$ROOT_DIRECTORY/Brewfile" "$HOME/Brewfile"
+ln -vnfs "$ROOT_DIRECTORY/.warp" "$HOME/.warp"
+
+source ./scripts/homebrew
