@@ -113,9 +113,17 @@ export EDITOR="code -w"
 export PATH="/usr/local/bin:$PATH"
 export HOMEBREW_CASK_OPTS=--no-quarantine
 
-source ~/.dotfiles/aliases
-source ~/.tonkean-aliases
-source ~/.secrets
+if [[ -f ~/.dotfiles/aliases ]]; then
+    source ~/.dotfiles/aliases
+fi
+
+if [[ -f ~/.tonkean-aliases ]]; then
+    source ~/.tonkean-aliases
+fi
+
+if [[ -f ~/.secrets ]]; then
+    source ~/.secrets
+fi
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 # [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
