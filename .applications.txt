@@ -11,7 +11,6 @@
 /Applications/Spotify.app
 /Applications/Docker.app
 /Applications/TickTick.app
-/Applications/Safari.app
 /Applications/Amphetamine.app
 /Applications/Arc.app
 /Applications/zoom.us.app
