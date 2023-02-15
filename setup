@@ -10,4 +10,4 @@ ln -vnfs "$ROOT_DIRECTORY/Brewfile" "$HOME/Brewfile"
 ln -vnfs "$ROOT_DIRECTORY/.warp" "$HOME/.warp"
 
 source ./scripts/homebrew
-source ./scripts/zsh
+source ./scripts/installs
