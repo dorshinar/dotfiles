@@ -125,15 +125,18 @@ if [[ -f ~/.secrets ]]; then
     source ~/.secrets
 fi
 
+if [[ -d ~/zshrc-scripts ]]; then
+    for file in ~/zshrc-scripts/*; do
+        source "$file"
+    done
+fi
+
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 # [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
 export PATH="/usr/local/share/python:$PATH"
 export PATH="/Users/dorshinar/.deno/bin:$PATH"
-
-eval $(thefuck --alias)
-
-# eval "$(fnm env --use-on-cd)"
+export PATH="/Users/dorshinar/scripts:$PATH"
 
 # bun completions
 [ -s "/Users/dorshinar/.bun/_bun" ] && source "/Users/dorshinar/.bun/_bun"
@@ -144,3 +147,6 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 
 # Fig post block. Keep at the bottom of this file.
 # [[ -f "$HOME/.fig/shell/zshrc.post.zsh" ]] && builtin source "$HOME/.fig/shell/zshrc.post.zsh"
+source ~/.ai21_zshrc
+
+printf '\eP$f{"hook": "SourcedRcFileForWarp", "value": { "shell": "zsh" }}\x9c'

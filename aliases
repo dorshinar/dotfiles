@@ -23,6 +23,9 @@ alias gsmd="git stash && gfmd && gsp"
 alias pr="gh pr create"
 alias prm="gh pr create --base master"
 
+gnb() {
+  git switch -c "$1"
+}
 gfm() {
   git fetch
   git merge "$1" --no-edit
@@ -47,6 +50,7 @@ prb() {
 
 # General Shortcuts
 alias kn="killall -9 node"
+alias cat="bat"
 
 kill-port() {
   lsof -t -i tcp:"$1" | xargs kill
