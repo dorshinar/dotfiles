@@ -1,6 +1,6 @@
 #!/bin/zsh
 
-ROOT_DIRECTORY="$HOME/git/dotfiles"
+ROOT_DIRECTORY="$HOME/Code/dotfiles"
 
 echo "🚀 Setup links from $ROOT_DIRECTORY"
 
