@@ -23,6 +23,9 @@ alias gsmd="git stash && gfmd && gsp"
 alias pr="gh pr create"
 alias prm="gh pr create --base master"
 
+c() {
+  z "$1" && code .
+}
 gnb() {
   git switch -c "$1"
 }
