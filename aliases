@@ -47,6 +47,9 @@ gfc() {
   git fetch
   git checkout "$1"
 }
+gcop() {
+  git checkout "$1" && gpl
+}
 prb() {
   gh pr create --base "$1"
 }
