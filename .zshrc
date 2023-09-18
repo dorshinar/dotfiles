@@ -79,7 +79,7 @@ zstyle ':omz:update' frequency 7
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git npm brew macos zsh-syntax-highlighting zsh-autosuggestions z)
+plugins=(git npm brew macos zsh-syntax-highlighting zsh-autosuggestions)
 
 source $ZSH/oh-my-zsh.sh
 ZSH_HIGHLIGHT_STYLES[comment]='none'
@@ -113,6 +113,25 @@ export EDITOR="code -w"
 export PATH="/usr/local/bin:$PATH"
 export HOMEBREW_CASK_OPTS=--no-quarantine
 
+
+export PATH="/usr/local/share/python:$PATH"
+export PATH="/Users/dorshinar/.deno/bin:$PATH"
+export PATH="/Users/dorshinar/scripts:$PATH"
+
+# bun completions
+[ -s "/Users/dorshinar/.bun/_bun" ] && source "/Users/dorshinar/.bun/_bun"
+
+# bun
+export BUN_INSTALL="/Users/dorshinar/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+source ~/.ai21_zshrc
+
+compinit
+eval "$(zoxide init zsh)"
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+
+
 if [[ -f ~/.dotfiles/aliases ]]; then
     source ~/.dotfiles/aliases
 fi
@@ -131,22 +150,12 @@ if [[ -d ~/zshrc-scripts ]]; then
     done
 fi
 
-# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
-# [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
-
-export PATH="/usr/local/share/python:$PATH"
-export PATH="/Users/dorshinar/.deno/bin:$PATH"
-export PATH="/Users/dorshinar/scripts:$PATH"
-
-# bun completions
-[ -s "/Users/dorshinar/.bun/_bun" ] && source "/Users/dorshinar/.bun/_bun"
-
-# bun
-export BUN_INSTALL="/Users/dorshinar/.bun"
-export PATH="$BUN_INSTALL/bin:$PATH"
-
-# Fig post block. Keep at the bottom of this file.
-# [[ -f "$HOME/.fig/shell/zshrc.post.zsh" ]] && builtin source "$HOME/.fig/shell/zshrc.post.zsh"
-source ~/.ai21_zshrc
-
 printf '\eP$f{"hook": "SourcedRcFileForWarp", "value": { "shell": "zsh" }}\x9c'
+
+# pnpm
+export PNPM_HOME="/Users/dorshinar/Library/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+# pnpm end
