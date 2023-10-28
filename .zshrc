@@ -113,10 +113,10 @@ export EDITOR="code -w"
 export PATH="/usr/local/bin:$PATH"
 export HOMEBREW_CASK_OPTS=--no-quarantine
 
-
 export PATH="/usr/local/share/python:$PATH"
 export PATH="/Users/dorshinar/.deno/bin:$PATH"
 export PATH="/Users/dorshinar/scripts:$PATH"
+export PATH="$PATH:/usr/local/bin/docker"
 
 # bun completions
 [ -s "/Users/dorshinar/.bun/_bun" ] && source "/Users/dorshinar/.bun/_bun"
