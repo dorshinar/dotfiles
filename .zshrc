@@ -159,3 +159,11 @@ case ":$PATH:" in
   *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
 # pnpm end
+
+eval "$(fnm env --use-on-cd)"
+
+export PINECONE_API_KEY=286f1dc8-0f6c-4519-b1a4-38b30b9adf60
+
+### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
+export PATH="/Users/dorshinar/.rd/bin:$PATH"
+### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)

@@ -19,6 +19,7 @@ alias gsd="git stash && gcdp && gsp"
 alias gsl="git stash && gpl && gsp"
 alias gsp="git stash pop"
 alias gsmd="git stash && gfmd && gsp"
+alias gec="git commit -anm \"empty\" --allow-empty && gps --no-verify"
 alias px="pnpm dlx"
 
 alias pr="gh pr create"
