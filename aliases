@@ -25,9 +25,8 @@ alias px="pnpm dlx"
 alias pr="gh pr create"
 alias prm="gh pr create --base master"
 
-c() {
-  z "$1" && code .
-}
+alias c="cursor"
+
 gnb() {
   git switch -c "$1"
 }

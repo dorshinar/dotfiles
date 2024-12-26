@@ -1,6 +1,3 @@
-# Fig pre block. Keep at the top of this file.
-# [[ -f "$HOME/.fig/shell/zshrc.pre.zsh" ]] && builtin source "$HOME/.fig/shell/zshrc.pre.zsh"
-
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
 # confirmations, etc.) must go above this block; everything else may go below.
@@ -97,7 +94,7 @@ ZSH_HIGHLIGHT_STYLES[comment]='none'
 # else
 #   export EDITOR='mvim'
 # fi
-export EDITOR="code -w"
+export EDITOR="cursor -w"
 
 # Compilation flags
 # export ARCHFLAGS="-arch x86_64"
@@ -150,8 +147,6 @@ if [[ -d ~/zshrc-scripts ]]; then
     done
 fi
 
-printf '\eP$f{"hook": "SourcedRcFileForWarp", "value": { "shell": "zsh" }}\x9c'
-
 # pnpm
 export PNPM_HOME="/Users/dorshinar/Library/pnpm"
 case ":$PATH:" in
@@ -162,8 +157,12 @@ esac
 
 eval "$(fnm env --use-on-cd)"
 
-export PINECONE_API_KEY=286f1dc8-0f6c-4519-b1a4-38b30b9adf60
+export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
 
 ### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
 export PATH="/Users/dorshinar/.rd/bin:$PATH"
 ### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
+
+eval "$(starship init zsh)"
+
+# printf '\eP$f{"hook": "SourcedRcFileForWarp", "value": { "shell": "zsh" }}\x9c'
