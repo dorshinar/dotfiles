@@ -1,9 +1,4 @@
-# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
-# Initialization code that may require console input (password prompts, [y/n]
-# confirmations, etc.) must go above this block; everything else may go below.
-# if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-#   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
-# fi
+zmodload zsh/zprof
 
 # Path to your oh-my-zsh installation.
 export ZSH="/Users/dorshinar/.oh-my-zsh"
@@ -76,7 +71,7 @@ zstyle ':omz:update' frequency 7
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git npm brew macos zsh-syntax-highlighting zsh-autosuggestions)
+plugins=(git npm brew macos zsh-syntax-highlighting zsh-autosuggestions zsh-shift-select)
 
 source $ZSH/oh-my-zsh.sh
 ZSH_HIGHLIGHT_STYLES[comment]='none'
@@ -124,7 +119,12 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 
 source ~/.ai21_zshrc
 
-compinit
+zstyle ':completion:*' rehash true
+zstyle ':completion:*' use-cache yes
+zstyle ':completion:*' cache-path $ZCACHE/completion
+
+autoload -Uz compinit
+compinit -C
 eval "$(zoxide init zsh)"
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
@@ -166,3 +166,5 @@ export PATH="/Users/dorshinar/.rd/bin:$PATH"
 eval "$(starship init zsh)"
 
 # printf '\eP$f{"hook": "SourcedRcFileForWarp", "value": { "shell": "zsh" }}\x9c'
+
+# zprof

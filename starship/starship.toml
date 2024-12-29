@@ -1,3 +1,17 @@
 "$schema" = 'https://starship.rs/config-schema.json'
 
-add_newline = true
+format = """
+$directory\
+$git_branch\
+$git_state\
+$git_status\
+$nodejs\
+$python\
+$line_break\
+$container\
+$shell\
+$character"""
+
+[character]
+success_symbol = '[\$](bold green) '
+error_symbol = '[\$](bold red) '
