@@ -12,6 +12,8 @@ $container\
 $shell\
 $character"""
 
+command_timeout = 0
+
 [character]
 success_symbol = '[\$](bold green) '
 error_symbol = '[\$](bold red) '
