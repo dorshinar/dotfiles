@@ -25,10 +25,7 @@ brew "supabase/tap/supabase"
 
 # Casks
 cask "adobe-acrobat-reader"
-cask "authy"
 cask "postman"
-cask "qbittorrent"
-cask "slack"
 cask "the-unarchiver"
 cask "ticktick"
 cask "visual-studio-code"

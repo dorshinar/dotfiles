@@ -1,9 +1,6 @@
 /Applications/Adobe Acrobat Reader.app
 /Applications/Visual Studio Code.app
 /Applications/VLC.app
-/Applications/Fig.app
-/Applications/qBittorrent.app
-/Applications/Altair GraphQL Client.app
 /Applications/Raycast.app
 /Applications/Figma.app
 /Applications/Google Chrome.app

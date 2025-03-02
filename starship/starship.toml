@@ -12,7 +12,7 @@ $container\
 $shell\
 $character"""
 
-command_timeout = 0
+command_timeout = 3600000
 
 [character]
 success_symbol = '[\$](bold green) '
