@@ -1,9 +1,7 @@
 # Taps
 tap "homebrew/autoupdate"
 tap "homebrew/bundle"
-tap "homebrew/cask"
 tap "homebrew/cask-versions"
-tap "homebrew/core"
 tap "homebrew/services"
 
 # Brews
@@ -16,11 +14,11 @@ brew "imagemagick"
 brew "node"
 brew "pnpm"
 brew "ripgrep"
-brew "thefuck"
 brew "zsh"
 brew "starship"
 brew "fzf"
 brew "bat"
+brew "zoxide"
 
 # Casks
 cask "adobe-acrobat-reader"

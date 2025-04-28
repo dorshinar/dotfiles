@@ -117,8 +117,6 @@ export PATH="$PATH:/usr/local/bin/docker"
 export BUN_INSTALL="/Users/dorshinar/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
-source ~/.ai21_zshrc
-
 zstyle ':completion:*' rehash true
 zstyle ':completion:*' use-cache yes
 zstyle ':completion:*' cache-path $ZCACHE/completion
