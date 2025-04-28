@@ -133,10 +133,6 @@ if [[ -f ~/.dotfiles/aliases ]]; then
     source ~/.dotfiles/aliases
 fi
 
-if [[ -f ~/.tonkean-aliases ]]; then
-    source ~/.tonkean-aliases
-fi
-
 if [[ -f ~/.secrets ]]; then
     source ~/.secrets
 fi

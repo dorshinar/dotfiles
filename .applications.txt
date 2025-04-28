@@ -4,18 +4,14 @@
 /Applications/Raycast.app
 /Applications/Figma.app
 /Applications/Google Chrome.app
-/Applications/Warp.app
 /Applications/Spotify.app
 /Applications/Docker.app
 /Applications/TickTick.app
 /Applications/Amphetamine.app
 /Applications/Arc.app
-/Applications/zoom.us.app
-/Applications/Bitwarden.app
-/Applications/Authy Desktop.app
 /Applications/Plex Media Server.app
 /Applications/iTerm.app
 /Applications/Firefox.app
 /Applications/Postman.app
-/Applications/Microsoft Teams.app
-/Applications/Slack.app
+/Applications/1Password.app
+/Applications/Cursor.app
