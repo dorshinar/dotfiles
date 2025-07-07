@@ -13,7 +13,8 @@ ln -vnfs "$ROOT_DIRECTORY/.warp" "$HOME/.warp"
 
 # git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
 
-# source ./scripts/homebrew
+source ./scripts/homebrew
+source ./scripts/installs
 
 mkdir -p ~/.config
 ln -vnfs "$ROOT_DIRECTORY/starship/starship.toml" ~/.config

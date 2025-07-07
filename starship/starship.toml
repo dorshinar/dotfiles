@@ -17,3 +17,6 @@ command_timeout = 3600000
 [character]
 success_symbol = '[\$](bold green) '
 error_symbol = '[\$](bold red) '
+
+[git_branch]
+truncation_length = 40

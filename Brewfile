@@ -19,6 +19,8 @@ brew "starship"
 brew "fzf"
 brew "bat"
 brew "zoxide"
+brew "zsh-syntax-highlighting"
+brew "zsh-autosuggestions"
 
 # Casks
 cask "adobe-acrobat-reader"

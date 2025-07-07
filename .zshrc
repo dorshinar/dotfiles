@@ -1,7 +1,7 @@
 # zmodload zsh/zprof
 
 # Path to your oh-my-zsh installation.
-export ZSH="/Users/dorshinar/.oh-my-zsh"
+export ZSH="/Users/dor.shinar/.oh-my-zsh"
 export DISABLE_AUTO_UPDATE="true"
 export ZSH_DISABLE_COMPFIX="true"
 zstyle ':omz:update' frequency 7
@@ -106,15 +106,15 @@ export PATH="/usr/local/bin:$PATH"
 export HOMEBREW_CASK_OPTS=--no-quarantine
 
 export PATH="/usr/local/share/python:$PATH"
-export PATH="/Users/dorshinar/.deno/bin:$PATH"
-export PATH="/Users/dorshinar/scripts:$PATH"
+export PATH="/Users/dor.shinar/.deno/bin:$PATH"
+export PATH="/Users/dor.shinar/scripts:$PATH"
 export PATH="$PATH:/usr/local/bin/docker"
 
 # bun completions
-[ -s "/Users/dorshinar/.bun/_bun" ] && source "/Users/dorshinar/.bun/_bun"
+[ -s "/Users/dor.shinar/.bun/_bun" ] && source "/Users/dor.shinar/.bun/_bun"
 
 # bun
-export BUN_INSTALL="/Users/dorshinar/.bun"
+export BUN_INSTALL="/Users/dor.shinar/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
 zstyle ':completion:*' rehash true
@@ -142,7 +142,7 @@ if [[ -d ~/zshrc-scripts ]]; then
 fi
 
 # pnpm
-export PNPM_HOME="/Users/dorshinar/Library/pnpm"
+export PNPM_HOME="/Users/dor.shinar/Library/pnpm"
 case ":$PATH:" in
   *":$PNPM_HOME:"*) ;;
   *) export PATH="$PNPM_HOME:$PATH" ;;
@@ -154,7 +154,7 @@ eval "$(fnm env --use-on-cd)"
 export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
 
 ### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
-export PATH="/Users/dorshinar/.rd/bin:$PATH"
+export PATH="/Users/dor.shinar/.rd/bin:$PATH"
 ### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
 
 eval "$(starship init zsh)"
