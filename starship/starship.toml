@@ -20,3 +20,6 @@ error_symbol = '[\$](bold red) '
 
 [git_branch]
 truncation_length = 40
+
+[git_status]
+disabled = true

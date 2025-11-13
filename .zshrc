@@ -71,7 +71,7 @@ zstyle ':omz:update' frequency 7
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git npm brew macos zsh-syntax-highlighting zsh-autosuggestions zsh-shift-select)
+plugins=(npm brew macos zsh-syntax-highlighting zsh-autosuggestions zsh-shift-select)
 
 source $ZSH/oh-my-zsh.sh
 ZSH_HIGHLIGHT_STYLES[comment]='none'
@@ -161,4 +161,16 @@ eval "$(starship init zsh)"
 
 # printf '\eP$f{"hook": "SourcedRcFileForWarp", "value": { "shell": "zsh" }}\x9c'
 
+if [[ -d ~/scripts/work ]]; then
+  for file in ~/scripts/work/*; do
+    [ -f "$file" ] && source "$file"
+  done
+fi
+
+
 # zprof
+
+# opencode
+export PATH=/Users/dor.shinar/.opencode/bin:$PATH
+
+. "$HOME/.local/bin/env"
