@@ -5,6 +5,7 @@ alias nrd="npm run dev"
 # Git shortcuts
 alias gps="git push"
 alias gpl="git pull"
+alias gco="git checkout"
 alias gmm="git merge master --no-edit"
 alias gfmm="git fetch && git merge origin/master --no-edit"
 alias gmd="git merge develop --no-edit"
@@ -28,7 +29,10 @@ alias prm="gh pr create --base master"
 alias c="cursor"
 
 gnb() {
-  git switch -c "$1"
+  git switch -c "$@"
+}
+gntb() {
+  git switch -c "temp-$RANDOM" origin/develop
 }
 gfm() {
   git fetch
