@@ -17,6 +17,7 @@ brew "deno"
 brew "dependabot"
 # Simple, fast and user-friendly alternative to find
 brew "fd"
+brew "fish"
 # Fast and simple Node.js version manager
 brew "fnm"
 # Command-line fuzzy finder written in Go

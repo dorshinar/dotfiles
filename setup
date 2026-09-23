@@ -19,3 +19,9 @@ ln -vnfs "$ROOT_DIRECTORY/starship/starship.toml" ~/.config
 
 mkdir -p ~/.config/ghostty
 ln -vnfs "$ROOT_DIRECTORY/ghostty/.config" ~/.config/ghostty/config
+
+# Pre-existing real dir (e.g. created by uv) must move aside before the symlink can land
+if [[ -d ~/.config/fish && ! -L ~/.config/fish ]]; then
+  mv ~/.config/fish ~/.config/fish.bak."$(date +%s)"
+fi
+ln -vnfs "$ROOT_DIRECTORY/fish" ~/.config/fish
