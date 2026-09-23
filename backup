@@ -1,0 +1,17 @@
+#!/bin/zsh
+
+set -euo pipefail
+
+ROOT_DIRECTORY="${0:A:h}"
+cd "$ROOT_DIRECTORY"
+
+echo "🧰 Backing up machine state into $ROOT_DIRECTORY"
+
+echo "  • Brewfile"
+brew bundle dump --force --file=Brewfile   # add --no-vscode to exclude editor extensions
+
+echo "  • .applications.txt"
+ls -d /Applications/*.app > .applications.txt
+
+echo "✅ Done — review with: git -C \"$ROOT_DIRECTORY\" status"
+echo "ℹ️  Manual exports (no CLI): Raycast → raycast.rayconfig, VS Code/Cursor → default.code-profile"

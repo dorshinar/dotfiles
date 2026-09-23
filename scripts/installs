@@ -1,8 +1,19 @@
 #!/bin/zsh
 
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+# RUNZSH=no    -> don't `exec zsh` at the end (would abort the rest of setup)
+# KEEP_ZSHRC=yes -> don't replace our symlinked ~/.zshrc
+if [ ! -d "$HOME/.oh-my-zsh" ]; then
+  RUNZSH=no KEEP_ZSHRC=yes sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+fi
 
-git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
-git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
-git clone https://github.com/jirutka/zsh-shift-select.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-shift-select
+ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 
+clone_plugin() {
+  local repo="$1"
+  local dest="$ZSH_CUSTOM/plugins/${repo:t:r}"
+  [ -d "$dest" ] || git clone "$repo" "$dest"
+}
+
+clone_plugin https://github.com/zsh-users/zsh-syntax-highlighting.git
+clone_plugin https://github.com/zsh-users/zsh-autosuggestions
+clone_plugin https://github.com/jirutka/zsh-shift-select.git

@@ -1,7 +1,8 @@
 # zmodload zsh/zprof
 
-# Ensure no duplicate entries in PATH
-typeset -U PATH
+# Environment, PATH, aliases and functions live in ~/.zshenv (read by ALL zsh
+# invocations, including non-interactive/agent shells). This file is for
+# interactive-only setup.
 
 # Path to your oh-my-zsh installation
 export ZSH="$HOME/.oh-my-zsh"
@@ -16,32 +17,13 @@ plugins=(npm brew macos zsh-syntax-highlighting zsh-autosuggestions zsh-shift-se
 source $ZSH/oh-my-zsh.sh
 ZSH_HIGHLIGHT_STYLES[comment]='none'
 
-# Editor
-export EDITOR="cursor -w"
+# Re-apply PATH (defined in ~/.zshenv) so our custom dirs sit ahead of the system
+# paths that macOS /etc/zprofile's path_helper prepends on login shells, and
+# ahead of anything oh-my-zsh added above.
+__setup_path
 
-# Homebrew
-export HOMEBREW_CASK_OPTS="--no-quarantine"
-
-# PATH configuration (consolidated)
-export PATH="/usr/local/bin:$PATH"
-export PATH="/usr/local/share/python:$PATH"
-export PATH="$HOME/.deno/bin:$PATH"
-export PATH="$HOME/scripts:$PATH"
-export PATH="/usr/local/bin/docker:$PATH"
-export PATH="$HOME/.bun/bin:$PATH"
-export PATH="$HOME/.rd/bin:$PATH"
-export PATH="$HOME/.opencode/bin:$PATH"
-
-# bun
-export BUN_INSTALL="$HOME/.bun"
+# bun completions
 [ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
-
-# pnpm
-export PNPM_HOME="$HOME/Library/pnpm"
-case ":$PATH:" in
-  *":$PNPM_HOME:"*) ;;
-  *) export PATH="$PNPM_HOME:$PATH" ;;
-esac
 
 # History settings
 HISTSIZE=50000
@@ -56,6 +38,12 @@ setopt INC_APPEND_HISTORY
 setopt AUTO_CD
 setopt NO_BEEP
 setopt INTERACTIVE_COMMENTS
+
+# Word boundaries for opt+arrow, ctrl+w, etc.: alphanumerics + underscore are
+# word chars; separators like - . / $ = break (macOS-native style)
+autoload -U select-word-style
+select-word-style normal
+WORDCHARS='_'
 
 # Completion settings
 export ZCACHE="${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
@@ -99,26 +87,16 @@ function set_terminal_title() {
 }
 add-zsh-hook precmd set_terminal_title
 
-# macOS fork safety (needed for some Python multiprocessing)
-export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
-
-# Source additional configuration files
-[[ -f ~/.dotfiles/aliases ]] && source ~/.dotfiles/aliases
-[[ -f ~/.secrets ]] && source ~/.secrets
-
-if [[ -d ~/zshrc-scripts ]]; then
-    for file in ~/zshrc-scripts/*.zsh(N) ~/zshrc-scripts/*(.N); do
-        [[ -f "$file" ]] && source "$file"
-    done
-fi
-
-if [[ -d ~/scripts/work ]]; then
-    for file in ~/scripts/work/*(.N); do
-        [[ -f "$file" ]] && source "$file"
-    done
-fi
-
-# Additional environment
-[[ -f "$HOME/.local/bin/env" ]] && . "$HOME/.local/bin/env"
-
 # zprof
+
+
+# Codex uses Azure OpenAI; resolve the key from 1Password only when launching it
+codex() {
+  if [[ -z "${AZURE_OPENAI_API_KEY:-}" ]]; then
+    local key
+    key="$(op read 'op://Private/Azure Foundry/credential')" || { echo "codex: failed to read Azure key from 1Password" >&2; return 1; }
+    AZURE_OPENAI_API_KEY="$key" command codex "$@"
+  else
+    command codex "$@"
+  fi
+}

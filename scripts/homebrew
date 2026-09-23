@@ -13,11 +13,5 @@ fi
 
 echo "🚀 Installing Brewfile from $ROOT_DIRECTORY"
 
-pwd
-ls
-
 BREWFILE="$ROOT_DIRECTORY/Brewfile"
-echo "Brewfile contents:"
-sed 's/^/  /' < "$BREWFILE"
-
 brew bundle check "--file=$BREWFILE" || brew bundle install "--file=$BREWFILE"

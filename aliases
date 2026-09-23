@@ -1,5 +1,3 @@
-alias ws="work-start"
-alias we="work-end"
 alias nrd="npm run dev"
 
 # Git shortcuts
@@ -7,9 +5,9 @@ alias gps="git push"
 alias gpl="git pull"
 alias gco="git checkout"
 alias gmm="git merge master --no-edit"
-alias gfmm="git fetch && git merge origin/master --no-edit"
+alias gfmm="git fetch origin master && git merge origin/master --no-edit"
 alias gmd="git merge develop --no-edit"
-alias gfmd="git fetch && git merge origin/develop --no-edit"
+alias gfmd="git fetch origin develop && git merge origin/develop --no-edit"
 alias gcd="git checkout develop"
 alias gcdp="gcd && gpl"
 alias gcmp="gcm && gpl"
@@ -26,20 +24,23 @@ alias px="pnpm dlx"
 alias pr="gh pr create"
 alias prm="gh pr create --base master"
 
-alias c="cursor"
+alias c="code"
+# LiteLLM proxy for claude (Vertex + Azure GPT via /model) — uncomment to re-enable
+# alias claude="$HOME/litellm-proxy/claude-proxy --dangerously-skip-permissions"
 
 gnb() {
   git switch -c "$@"
 }
 gntb() {
+  git fetch origin develop
   git switch -c "temp-$RANDOM" origin/develop
 }
 gfm() {
-  git fetch
+  git fetch origin "$1" 
   git merge "$1" --no-edit
 }
 gfmo() {
-  git fetch
+  git fetch origin "$1"
   git merge origin/"$1" --no-edit
 }
 gupr() { 
