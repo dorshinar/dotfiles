@@ -1,17 +1,44 @@
-/Applications/Adobe Acrobat Reader.app
+/Applications/1Password.app
+/Applications/Claude.app
+/Applications/CleanShot X.app
+/Applications/Codiff.app
+/Applications/Company Portal.app
+/Applications/Cursor.app
+/Applications/Dia.app
+/Applications/Docker.app
+/Applications/Figma.app
+/Applications/GarageBand.app
+/Applications/Ghostty.app
+/Applications/Google Chrome Beta.app
+/Applications/Google Chrome.app
+/Applications/Google Docs.app
+/Applications/Google Drive.app
+/Applications/Google Sheets.app
+/Applications/Google Slides.app
+/Applications/Helium.app
+/Applications/HTTPie.app
+/Applications/iMovie.app
+/Applications/Iru Self Service.app
+/Applications/Keynote.app
+/Applications/LibreOffice.app
+/Applications/Microsoft Defender.app
+/Applications/Microsoft Edge.app
+/Applications/Numbers.app
+/Applications/Okta Verify.app
+/Applications/Pages.app
+/Applications/Pika.app
+/Applications/Postman.app
+/Applications/Raycast Beta.app
+/Applications/Raycast.app
+/Applications/Safari.app
+/Applications/Signal.app
+/Applications/Slack.app
+/Applications/Spotify.app
+/Applications/The Unarchiver.app
+/Applications/TickTick.app
+/Applications/Twingate.app
 /Applications/Visual Studio Code.app
 /Applications/VLC.app
-/Applications/Raycast.app
-/Applications/Figma.app
-/Applications/Google Chrome.app
-/Applications/Spotify.app
-/Applications/Docker.app
-/Applications/TickTick.app
-/Applications/Amphetamine.app
-/Applications/Arc.app
-/Applications/Plex Media Server.app
-/Applications/iTerm.app
-/Applications/Firefox.app
-/Applications/Postman.app
-/Applications/1Password.app
-/Applications/Cursor.app
+/Applications/WhatsApp.app
+/Applications/Zed.app
+/Applications/zoom.us.app
