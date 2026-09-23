@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+"""Regenerate default.code-profile from live VS Code settings, keybindings, and extensions."""
+import json
+import os
+import subprocess
+import sys
+
+home = os.path.expanduser("~")
+user_dir = f"{home}/Library/Application Support/Code/User"
+ext_dir = f"{home}/.vscode/extensions"
+out = sys.argv[1] if len(sys.argv) > 1 else "default.code-profile"
+
+
+def read(path, default=""):
+    try:
+        with open(path) as f:
+            return f.read()
+    except FileNotFoundError:
+        return default
+
+
+installed = subprocess.check_output(["code", "--list-extensions"], text=True).split()
+try:
+    meta = {e["identifier"]["id"].lower(): e for e in json.load(open(f"{ext_dir}/extensions.json"))}
+except FileNotFoundError:
+    meta = {}
+
+extensions = []
+for ext_id in sorted(installed):
+    m = meta.get(ext_id.lower(), {})
+    identifier = {"id": ext_id}
+    if m.get("identifier", {}).get("uuid"):
+        identifier["uuid"] = m["identifier"]["uuid"]
+    display_name = ext_id
+    loc = m.get("location", {}).get("path") or m.get("relativeLocation")
+    if loc:
+        pkg = loc if os.path.isabs(loc) else f"{ext_dir}/{loc}"
+        try:
+            display_name = json.load(open(f"{pkg}/package.json")).get("displayName", ext_id)
+        except (FileNotFoundError, json.JSONDecodeError):
+            pass
+    extensions.append({"identifier": identifier, "displayName": display_name, "applicationScoped": False})
+
+profile = {
+    "name": "default",
+    "settings": json.dumps({"settings": read(f"{user_dir}/settings.json", "{}")}),
+    "keybindings": json.dumps({"keybindings": read(f"{user_dir}/keybindings.json", "[]"), "platform": 1}),
+    "extensions": json.dumps(extensions),
+}
+with open(out, "w") as f:
+    json.dump(profile, f)
+print(f"    {len(extensions)} extensions")

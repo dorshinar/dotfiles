@@ -13,5 +13,8 @@ brew bundle dump --force --file=Brewfile   # add --no-vscode to exclude editor e
 echo "  • .applications.txt"
 ls -d /Applications/*.app > .applications.txt
 
+echo "  • default.code-profile"
+"$ROOT_DIRECTORY/scripts/vscode-profile" default.code-profile
+
 echo "✅ Done — review with: git -C \"$ROOT_DIRECTORY\" status"
-echo "ℹ️  Manual exports (no CLI): Raycast → raycast.rayconfig, VS Code/Cursor → default.code-profile"
+echo "ℹ️  Manual export (no CLI): Raycast → raycast.rayconfig"
