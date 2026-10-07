@@ -17,3 +17,5 @@ clone_plugin() {
 clone_plugin https://github.com/zsh-users/zsh-syntax-highlighting.git
 clone_plugin https://github.com/zsh-users/zsh-autosuggestions
 clone_plugin https://github.com/jirutka/zsh-shift-select.git
+
+command -v herdr >/dev/null || curl -fsSL https://herdr.dev/install.sh | sh
