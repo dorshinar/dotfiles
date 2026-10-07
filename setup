@@ -28,3 +28,8 @@ ln -vnfs "$ROOT_DIRECTORY/fish" ~/.config/fish
 
 mkdir -p ~/.config/herdr
 ln -vnfs "$ROOT_DIRECTORY/herdr/config.toml" ~/.config/herdr/config.toml
+
+mkdir -p ~/.claude/skills
+for skill in "$ROOT_DIRECTORY"/claude/skills/*/; do
+  ln -vnfs "${skill%/}" ~/.claude/skills/
+done

@@ -19,3 +19,6 @@ clone_plugin https://github.com/zsh-users/zsh-autosuggestions
 clone_plugin https://github.com/jirutka/zsh-shift-select.git
 
 command -v herdr >/dev/null || curl -fsSL https://herdr.dev/install.sh | sh
+
+# herdr control skill, installed as ~/.agents/skills/herdr with a symlink from ~/.claude/skills
+[ -e "$HOME/.claude/skills/herdr" ] || npx -y skills add herdrdev/herdr --skill herdr -g
