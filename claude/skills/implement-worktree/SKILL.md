@@ -66,6 +66,6 @@ Do not wait for implementation to finish. Report per ticket:
 
 Tell the user the workspace label to focus in the sidebar, and that `herdr agent list` shows live agent states (`working` / `blocked` / `idle`).
 
-The workspace agent stops after implementation with all changes uncommitted — remind the user to review the diff (the top-right reviewr pane shows it) and drive commit/push/PR themselves.
+The workspace agent stops after implementation with all changes uncommitted — remind the user to review the diff (the top-right hunk pane shows it) and drive commit/push/PR themselves.
 
 When a PR merges, tear the workspace down per the `/new-workspace` teardown section (`herdr worktree remove --workspace {WS}`).

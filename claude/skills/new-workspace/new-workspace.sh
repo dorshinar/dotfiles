@@ -3,7 +3,7 @@ set -euo pipefail
 
 die() { echo "new-workspace: $*" >&2; exit 1; }
 
-BRANCH="" LABEL="" BASE="origin/develop" AGENT_NAME="" WT_PATH="" EXISTING=0
+BRANCH="" LABEL="" BASE="origin/develop" AGENT_NAME="" WT_PATH="" EXISTING=0 NO_HUNK=0
 WORKTREES_DIR="${WORKTREES_DIR:-$HOME/Code/wiz/wiz-worktrees}"
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -13,6 +13,7 @@ while [ $# -gt 0 ]; do
     --agent-name) AGENT_NAME="$2"; shift 2 ;;
     --path) WT_PATH="$2"; shift 2 ;;
     --existing) EXISTING=1; shift ;;
+    --no-hunk) NO_HUNK=1; shift ;;
     *) die "unknown argument: $1" ;;
   esac
 done
@@ -37,7 +38,7 @@ elif git show-ref --verify --quiet "refs/heads/$BRANCH" || git show-ref --verify
 fi
 
 if [ -z "$WT_PATH" ]; then
-  SHORT=$(printf '%s' "$BRANCH" | grep -oE '^[A-Za-z]+-[0-9]+' | tr '[:upper:]' '[:lower:]' || true)
+  SHORT=$(printf '%s' "$BRANCH" | grep -oE '^[A-Z]+-[0-9]+' | tr '[:upper:]' '[:lower:]' || true)
   SHORT="${SHORT:-$(printf '%s' "$BRANCH" | tr '[:upper:]' '[:lower:]')}"
   WT_PATH="$WORKTREES_DIR/$(basename "$REPO_ROOT")/$SHORT"
 fi
@@ -77,7 +78,7 @@ P4=$(herdr pane split "$P2" --direction right --ratio 0.5 --cwd "$WEB" --no-focu
 
 # trailing read drains OSC/CPR query replies that tools emit but exit before consuming
 herdr pane run "$P2" "task install codegen && echo SETUP-DONE; sleep 1; while read -rs -t 0.2 -k 1 _; do :; done" >/dev/null
-herdr pane run "$P3" "herdr-reviewr" >/dev/null
+[ "$NO_HUNK" = 1 ] || herdr pane run "$P3" "hunk diff --watch" >/dev/null
 herdr pane run "$P1" "cd web" >/dev/null
 
 # the shell may still be running `cd web` when agent start validates the pane
