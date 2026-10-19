@@ -11,6 +11,12 @@ zoom = "alt+z"
 previous_workspace = "shift+alt+up"
 next_workspace = "shift+alt+down"
 
+# Jump to the agent that finished a turn or is blocked; repeat to cycle (herdr/attention)
+[[keys.command]]
+key = "alt+a"
+type = "shell"
+command = "~/.config/herdr/attention"
+
 [ui.toast]
 delivery = "system"
 

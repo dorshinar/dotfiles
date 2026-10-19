@@ -22,6 +22,7 @@ ln -vnfs "$ROOT_DIRECTORY/ghostty/.config" ~/.config/ghostty/config
 
 mkdir -p ~/.config/herdr
 ln -vnfs "$ROOT_DIRECTORY/herdr/config.toml" ~/.config/herdr/config.toml
+ln -vnfs "$ROOT_DIRECTORY/herdr/attention" ~/.config/herdr/attention
 
 mkdir -p ~/.claude/skills
 for skill in "$ROOT_DIRECTORY"/claude/skills/*/; do

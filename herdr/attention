@@ -1,0 +1,29 @@
+#!/bin/sh
+# Focus the agent that most recently finished a turn (`done`) or is waiting on
+# input (`blocked`). Pressing again cycles through the rest, newest first, then
+# through agents that are still `working`.
+# Focusing a `done` agent marks it seen, so it leaves the rotation on its own.
+set -eu
+
+PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+state="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/herdr-attention-last"
+last=$(cat "$state" 2>/dev/null || true)
+
+target=$(herdr agent list | jq -r --arg last "$last" '
+  [.result.agents[]
+    | select(.agent_status == "blocked" or .agent_status == "done" or .agent_status == "working")
+    | .rank = (if .agent_status == "working" then 1 else 0 end)]
+  | sort_by(.rank, -.state_change_seq)
+  | map(.name // .pane_id)
+  | if length == 0 then empty
+    else index($last) as $i
+      | .[if $i == null then 0 else ($i + 1) % length end]
+    end')
+
+if [ -z "$target" ]; then
+  : > "$state"
+  exit 0
+fi
+
+printf '%s\n' "$target" > "$state"
+herdr agent focus "$target" >/dev/null
