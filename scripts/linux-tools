@@ -1,0 +1,43 @@
+#!/bin/zsh
+
+# Linux counterpart of scripts/homebrew for machines without sudo: pull the
+# distro's .deb packages and extract their binaries into ~/.local/bin.
+
+set -e
+
+BIN_DIR="$HOME/.local/bin"
+mkdir -p "$BIN_DIR"
+
+# bat's .deb links against system libgit2, so use upstream's static musl build
+if ! command -v bat >/dev/null && ! command -v batcat >/dev/null; then
+  echo "🚀 Installing bat into $BIN_DIR"
+  url="$(curl -fsSL https://api.github.com/repos/sharkdp/bat/releases/latest \
+    | grep -o "https://[^\"]*$(uname -m)-unknown-linux-musl.tar.gz")"
+  curl -fsSL "$url" | tar -xz -C "$BIN_DIR" --strip-components=1 --wildcards '*/bat'
+fi
+
+# package -> binary inside the package
+typeset -A tools=(zoxide zoxide starship starship)
+
+missing=()
+for pkg bin in "${(@kv)tools}"; do
+  command -v "$bin" >/dev/null || missing+=("$pkg")
+done
+
+if (( ${#missing} == 0 )); then
+  echo "🚀 Linux tools installed!"
+  return 0 2>/dev/null || exit 0
+fi
+
+echo "🚀 Installing ${missing[*]} into $BIN_DIR"
+
+work="$(mktemp -d)"
+(
+  cd "$work"
+  apt-get download "${missing[@]}"
+  for deb in *.deb; do dpkg -x "$deb" root; done
+)
+for pkg in "${missing[@]}"; do
+  install -m 755 "$work/root/usr/bin/${tools[$pkg]}" "$BIN_DIR/"
+done
+rm -rf "$work"

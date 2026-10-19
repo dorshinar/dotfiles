@@ -9,9 +9,13 @@ echo "🚀 Setup links from $ROOT_DIRECTORY"
 ln -vnfs "$ROOT_DIRECTORY" "$HOME/.dotfiles"
 ln -vnfs "$ROOT_DIRECTORY/.zshrc" "$HOME/.zshrc"
 ln -vnfs "$ROOT_DIRECTORY/.zshenv" "$HOME/.zshenv"
-ln -vnfs "$ROOT_DIRECTORY/Brewfile" "$HOME/Brewfile"
 
-source "$ROOT_DIRECTORY/scripts/homebrew"
+if [[ "$OSTYPE" == darwin* ]]; then
+  ln -vnfs "$ROOT_DIRECTORY/Brewfile" "$HOME/Brewfile"
+  source "$ROOT_DIRECTORY/scripts/homebrew"
+else
+  source "$ROOT_DIRECTORY/scripts/linux-tools"
+fi
 source "$ROOT_DIRECTORY/scripts/installs"
 
 mkdir -p ~/.config

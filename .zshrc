@@ -12,7 +12,8 @@ export ZSH_DISABLE_COMPFIX="true"
 zstyle ':omz:update' frequency 7
 
 # Plugins
-plugins=(npm brew macos zsh-syntax-highlighting zsh-autosuggestions zsh-shift-select)
+plugins=(npm zsh-syntax-highlighting zsh-autosuggestions zsh-shift-select)
+[[ "$OSTYPE" == darwin* ]] && plugins+=(brew macos)
 
 source $ZSH/oh-my-zsh.sh
 ZSH_HIGHLIGHT_STYLES[comment]='none'
@@ -63,10 +64,10 @@ fi
 
 # Tools initialization
 export _ZO_FZF_OPTS="--preview 'eval \"cd {2}\" 2>/dev/null; b=\$(git branch --show-current 2>/dev/null); if [ -n \"\$b\" ]; then echo \"\ue702 \$b\"; else echo \"(not a git repo)\"; fi' --preview-window=down:1:wrap"
-eval "$(zoxide init zsh)"
+(( $+commands[zoxide] )) && eval "$(zoxide init zsh)"
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-eval "$(fnm env --use-on-cd)"
-eval "$(starship init zsh)"
+(( $+commands[fnm] )) && eval "$(fnm env --use-on-cd)"
+(( $+commands[starship] )) && eval "$(starship init zsh)"
 
 # Custom terminal title: git repo name or last 2 directories
 function set_terminal_title() {
@@ -99,4 +100,24 @@ codex() {
   else
     command codex "$@"
   fi
+}
+
+# CircleCI CLI stores tokens in the Secret Service keyring, which has no collection on a cloudtop; feed it from pass per call instead
+circleci() {
+  local token
+  token="$(pass show circleci)" || { echo "circleci: failed to read token from pass" >&2; return 1; }
+  CIRCLE_TOKEN="$token" command circleci "$@"
+}
+
+# Added by the Hunk installer (https://hunk.dev)
+export PATH='/usr/local/google/home/dorshinar/.hunk/bin':"$PATH"
+
+# Personal Claude Code overrides layered above ~/.claude/settings.json, which claude-setup.sh rewrites.
+# Allow rules in the local file also strip matching ask rules from settings.json, since ask beats allow across files.
+claude() {
+  local user="$HOME/.claude/settings.json" local_="$HOME/.claude/settings.local.json"
+  if [[ -f $local_ ]] && ! jq -e --slurpfile l "$local_" '([.permissions.ask[]?] - ($l[0].permissions.allow // [])) == [.permissions.ask[]?]' "$user" >/dev/null 2>&1; then
+    jq --slurpfile l "$local_" '.permissions.ask -= ($l[0].permissions.allow // [])' "$user" > "$user.tmp" && mv "$user.tmp" "$user"
+  fi
+  command claude --settings "$local_" "$@"
 }

@@ -12,7 +12,7 @@ typeset -U path PATH
 # dirs below the system paths. Non-login shells (incl. agent shells) never hit
 # path_helper, so this single call is enough for them.
 __setup_path() {
-  export PATH="/opt/homebrew/bin:$PATH"
+  [[ "$OSTYPE" == darwin* ]] && export PATH="/opt/homebrew/bin:$PATH"
   export PATH="/usr/local/bin:$PATH"
   export PATH="/usr/local/share/python:$PATH"
   export PATH="$HOME/.deno/bin:$PATH"
@@ -29,22 +29,35 @@ __setup_path() {
   esac
 }
 
-# Editor
-export EDITOR="code -w"
-
-# Homebrew
-export HOMEBREW_CASK_OPTS="--no-quarantine"
-
 # bun
 export BUN_INSTALL="$HOME/.bun"
 
-# pnpm
-export PNPM_HOME="$HOME/Library/pnpm"
+if [[ "$OSTYPE" == darwin* ]]; then
+  # Homebrew
+  export HOMEBREW_CASK_OPTS="--no-quarantine"
 
-# macOS fork safety (needed for some Python multiprocessing)
-export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+  # pnpm
+  export PNPM_HOME="$HOME/Library/pnpm"
+
+  # macOS fork safety (needed for some Python multiprocessing)
+  export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+else
+  export PNPM_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/pnpm"
+fi
 
 __setup_path
+
+# Editor (falls back when VS Code isn't installed, e.g. on a Linux VM)
+if (( $+commands[code] )); then
+  export EDITOR="code -w"
+elif (( $+commands[nvim] )); then
+  export EDITOR="nvim"
+else
+  export EDITOR="vim"
+fi
+
+# Wiz web: dev-server tasks default to the turbo TUI; prefer stream output
+export WIZ_DISABLE_DEV_SERVER_TURBO_TUI=1
 
 # Additional environment (Rust/uv etc.; may add to PATH)
 [[ -f "$HOME/.local/bin/env" ]] && . "$HOME/.local/bin/env"

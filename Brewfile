@@ -35,6 +35,8 @@ brew "go-task"
 brew "gomplate"
 # Tools and libraries to manipulate images in select formats
 brew "imagemagick"
+# Lightweight command-line JSON processor
+brew "jq"
 # Simple terminal UI for git commands
 brew "lazygit"
 # CLI for managing LaunchDarkly feature flags

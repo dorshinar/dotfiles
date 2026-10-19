@@ -25,7 +25,7 @@ alias px="pnpm dlx"
 alias pr="gh pr create"
 alias prm="gh pr create --base master"
 
-alias c="code"
+alias c="wiztop open-editor"
 # LiteLLM proxy for claude (Vertex + Azure GPT via /model) — uncomment to re-enable
 # alias claude="$HOME/litellm-proxy/claude-proxy --dangerously-skip-permissions"
 
@@ -63,7 +63,12 @@ prb() {
 
 # General Shortcuts
 alias kn="killall -9 node"
-alias cat="bat"
+# Debian/Ubuntu ship bat as `batcat`
+if (( $+commands[bat] )); then
+  alias cat="bat"
+elif (( $+commands[batcat] )); then
+  alias cat="batcat"
+fi
 
 kill-port() {
   lsof -t -i tcp:"$1" | xargs kill
