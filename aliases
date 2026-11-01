@@ -28,6 +28,8 @@ alias prm="gh pr create --base master"
 alias c="wiztop open-editor"
 # LiteLLM proxy for claude (Vertex + Azure GPT via /model) — uncomment to re-enable
 # alias claude="$HOME/litellm-proxy/claude-proxy --dangerously-skip-permissions"
+# bypassPermissions in the Shift+Tab cycle without starting in it
+alias claude="claude --allow-dangerously-skip-permissions"
 
 gnb() {
   git switch -c "$@"

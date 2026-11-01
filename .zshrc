@@ -112,12 +112,3 @@ circleci() {
 # Added by the Hunk installer (https://hunk.dev)
 export PATH='/usr/local/google/home/dorshinar/.hunk/bin':"$PATH"
 
-# Personal Claude Code overrides layered above ~/.claude/settings.json, which claude-setup.sh rewrites.
-# Allow rules in the local file also strip matching ask rules from settings.json, since ask beats allow across files.
-claude() {
-  local user="$HOME/.claude/settings.json" local_="$HOME/.claude/settings.local.json"
-  if [[ -f $local_ ]] && ! jq -e --slurpfile l "$local_" '([.permissions.ask[]?] - ($l[0].permissions.allow // [])) == [.permissions.ask[]?]' "$user" >/dev/null 2>&1; then
-    jq --slurpfile l "$local_" '.permissions.ask -= ($l[0].permissions.allow // [])' "$user" > "$user.tmp" && mv "$user.tmp" "$user"
-  fi
-  command claude --settings "$local_" "$@"
-}
