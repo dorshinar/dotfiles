@@ -1,5 +1,5 @@
 #!/bin/bash
-# Open a Herdr workspace on a disposable branch at the head of a PR or branch, for review.
+# Open a Herdr space on a disposable branch at the head of a PR or branch, for review.
 # Usage: review-workspace.sh --kind <thermo|migration> --target <PR URL | PR number | branch> [--dry-run]
 set -euo pipefail
 
@@ -68,10 +68,7 @@ STAMP=$(date +%m%d-%H%M)
 REVIEW_BRANCH="review-$KIND-$ID-$STAMP"
 WT_PATH="$WORKTREES_DIR/$(basename "$REPO_ROOT")/$REVIEW_BRANCH"
 
-LIVE=$(herdr agent list 2>/dev/null | jq -r '.result.agents[].name // empty' || true)
-BASE_NAME=$(printf '%s' "$KIND-$ID" | cut -c1-29)
-AGENT_NAME="$BASE_NAME" N=2
-while grep -qxF "$AGENT_NAME" <<<"$LIVE"; do AGENT_NAME="$BASE_NAME-$N"; N=$((N + 1)); done
+AGENT_NAME=$(printf '%s' "$KIND-$ID-${STAMP#*-}" | cut -c1-32)
 
 emit() {
   jq -n --arg kind "$KIND" --arg pr "$PR" --arg title "$TITLE" --arg url "$PR_URL" \
@@ -87,7 +84,7 @@ emit() {
 if [ "$DRY_RUN" = 1 ]; then emit; exit 0; fi
 
 # the agent delivers the review in chat; nobody reads the diff in a pane, so skip hunk
-WS_JSON=$("$SCRIPT_DIR/new-workspace.sh" --branch "$REVIEW_BRANCH" --base "$HEAD_SHA" \
+WS_JSON=$("$SCRIPT_DIR/checkout.sh" --branch "$REVIEW_BRANCH" --base "$HEAD_SHA" \
   --label "$LABEL" --agent-name "$AGENT_NAME" --path "$WT_PATH" --no-hunk)
 
 emit "$WS_JSON"
