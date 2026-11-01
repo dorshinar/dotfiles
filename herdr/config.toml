@@ -17,6 +17,13 @@ key = "alt+a"
 type = "shell"
 command = "~/.config/herdr/attention"
 
+# Delete the focused worktree checkout in the background (dorshinar/herdr-worktree-rm)
+[[keys.command]]
+key = "shift+alt+d"
+type = "plugin_action"
+command = "dorshinar.worktree-rm.remove"
+description = "delete worktree checkout (background)"
+
 [ui.toast]
 delivery = "system"
 
