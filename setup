@@ -28,6 +28,13 @@ mkdir -p ~/.config/herdr
 ln -vnfs "$ROOT_DIRECTORY/herdr/config.toml" ~/.config/herdr/config.toml
 ln -vnfs "$ROOT_DIRECTORY/herdr/attention" ~/.config/herdr/attention
 
+# The desktop app (macOS only) keeps its own keys and mods under ~/.config/herdr-app
+if [[ "$OSTYPE" == darwin* ]]; then
+  mkdir -p ~/.config/herdr-app/mods
+  ln -vnfs "$ROOT_DIRECTORY/herdr-app/mods/attention" ~/.config/herdr-app/mods/attention
+  [[ -e ~/.config/herdr-app/keys.json ]] || ln -vnfs "$ROOT_DIRECTORY/herdr-app/keys.json" ~/.config/herdr-app/keys.json
+fi
+
 mkdir -p ~/.claude/skills
 for skill in "$ROOT_DIRECTORY"/claude/skills/*/; do
   ln -vnfs "${skill%/}" ~/.claude/skills/
