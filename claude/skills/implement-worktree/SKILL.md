@@ -22,7 +22,7 @@ Run the checkout script with the implement prompt as `--task`; the script starts
 ~/.claude/skills/checkout/checkout.sh {BRANCH} --label {TICKET} --agent-name {lowercased ticket ID} --task "Run /frontend-skills:implement {TICKET}. You are already in a dedicated worktree on branch {BRANCH}, created from origin/develop — skip its step 4 (Create Branch) entirely; never create or switch branches. Dependency install and codegen are running in terminal {setup}; before any codegen, lint, type-check, or build step, run: hc read {setup} | grep -q SETUP-DONE || hc wait {setup} --output SETUP-DONE. Do NOT commit, push, or create a PR — skip steps 8 (Lint, Commit & Push) and 9 (Create PR); instead run task agent:check, fix what it reports, and leave all changes uncommitted in the working tree for local review. End with the step 10 summary; the user will review the diff and drive commit/push/PR themselves."
 ```
 
-From its JSON take `{SPACE}` = `space_id`, `{PATH}` = `checkout_path`, `{AGENT_NAME}` = `agent_name`, `{SENT}` = `task_sent`. If `{SENT}` is `false`, the first message did not land: run `hc read {AGENT_NAME}` to see why (usually the folder-trust prompt), tell the user, and once Claude is idle send the same prompt with `hc send {AGENT_NAME} "..."`.
+From its JSON take `{SPACE}` = `space_id`, `{PATH}` = `checkout_path`, `{AGENT_NAME}` = `agent_name`, `{SENT}` = `task_sent`. If `{SENT}` is `false`, Claude was not idle within 30 s so nothing was sent: run `hc read {AGENT_NAME}` to see why (usually the folder-trust prompt), tell the user, and once Claude is idle send the same prompt with `hc send {AGENT_NAME} --if idle "..."`.
 
 ## 3. Summary
 

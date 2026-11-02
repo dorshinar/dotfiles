@@ -30,8 +30,15 @@ ln -vnfs "$ROOT_DIRECTORY/herdr/attention" ~/.config/herdr/attention
 
 # The desktop app (macOS only) keeps its own keys and mods under ~/.config/herdr-app
 if [[ "$OSTYPE" == darwin* ]]; then
-  mkdir -p ~/.config/herdr-app/mods
-  ln -vnfs "$ROOT_DIRECTORY/herdr-app/mods/attention" ~/.config/herdr-app/mods/attention
+  mkdir -p ~/.config/herdr-app/mods ~/.config/herdr-app/layouts
+  for mod in "$ROOT_DIRECTORY"/herdr-app/mods/*/; do
+    target=~/.config/herdr-app/mods/$(basename "$mod")
+    # A plain directory there (a copy made before it was linked) would swallow the link.
+    [[ -d $target && ! -L $target ]] && rm -rf "$target"
+    ln -vnfs "${mod%/}" "$target"
+  done
+  # Clone of the shipped main layout whose Spaces block runs mods/my-spaces (agent marks per space).
+  ln -vnfs "$ROOT_DIRECTORY/herdr-app/layouts/my-layout.json" ~/.config/herdr-app/layouts/my-layout.json
   [[ -e ~/.config/herdr-app/keys.json ]] || ln -vnfs "$ROOT_DIRECTORY/herdr-app/keys.json" ~/.config/herdr-app/keys.json
 fi
 

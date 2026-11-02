@@ -1,17 +1,24 @@
-// alt-a ("mod.open:attention" in keys.json): jump to the agent in another space
-// that needs me most: blocked first, then done, then working, newest change first.
-// Looking at a done agent marks it seen (herdr.seen), so it stops competing on its own.
+// alt-a ("mod.open:attention" in keys.json): jump to the agent at the top of the sidebar's
+// Agents list. The order is the one the shipped `agents` mod gives agent.next / agent.prev:
+// pinned first; in its Priority sort, blocked > done > working > idle with the most recently
+// changed first; in its "Grouped by space" sort, model order (space, tab, pane). The agent
+// already in front of me is skipped, so the key always goes somewhere.
 // Opened as a 1px window overlay, it acts in init and closes itself at once.
 
 import { View, div } from "gpui-kit";
-import { agents, focused, run, props, closeOverlay } from "herdr";
+import { agents, shared, run, props, closeOverlay } from "herdr";
 
-const RANK = { blocked: 0, done: 1, working: 2 };
+const RANK = { blocked: 4, done: 3, working: 2, idle: 1 };
 
-export function target(list = agents(), here = focused()?.space) {
-  return list
-    .filter((a) => a.status in RANK && a.space !== here)
-    .sort((x, y) => RANK[x.status] - RANK[y.status] || y.seq - x.seq)[0];
+export function order(list = agents(), sort = shared("agents.sort") ?? "priority") {
+  const ranked = sort === "priority"
+    ? [...list].sort((x, y) => (RANK[y.status] ?? 0) - (RANK[x.status] ?? 0) || y.seq - x.seq)
+    : list;
+  return [...ranked.filter((a) => a.pinned), ...ranked.filter((a) => !a.pinned)];
+}
+
+export function target(list = agents()) {
+  return order(list).find((a) => !a.focused);
 }
 
 export default class Attention extends View {
