@@ -85,6 +85,6 @@ if [ "$DRY_RUN" = 1 ]; then emit; exit 0; fi
 
 # the agent delivers the review in chat; nobody reads the diff in a pane, so skip hunk
 WS_JSON=$("$SCRIPT_DIR/checkout.sh" --branch "$REVIEW_BRANCH" --base "$HEAD_SHA" \
-  --label "$LABEL" --agent-name "$AGENT_NAME" --path "$WT_PATH" --no-hunk)
+  --label "$LABEL" --kind review --agent-name "$AGENT_NAME" --path "$WT_PATH" --no-hunk)
 
 emit "$WS_JSON"
