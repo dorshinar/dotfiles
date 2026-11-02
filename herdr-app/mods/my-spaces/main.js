@@ -6,6 +6,8 @@
 // review (see kind.js) sit under a foldable "Review" row at the end of their repo's group.
 // A worktree my-worktree is deleting shows a spinner and "deleting…" until git is done; then
 // this mod closes its space and toasts the result (the dialog itself is long closed by then).
+// A worktree whose branch's pull request merged (asked of GitHub now and then) shows
+// "merged #n" and gets one toast; clicking it opens that worktree's Remove dialog.
 // Click to switch, right-click for its menu, drag to reorder. (Personal clone of the shipped
 // `spaces` mod; the agent mark, the review group, the my-menu menu and the removal watch are new.)
 
@@ -41,6 +43,8 @@ const FALLBACK = 60000;
 
 // What a stored color name looks like on an avatar (the same in every mod
 // that draws space avatars): one strong color per hue, light and dark alike.
+// How often GitHub is asked whether a repo's worktree branches merged (one query per repo).
+const MERGED_EVERY = 15 * 60000;
 const MARK = { ansi6: "#22a99a", ansi3: "#e3814f", ansi4: "#5b8def", ansi5: "#8b7cf6", ansi2: "#3fae6a", ansi1: "#d9649a" };
 
 // A space speaks up only when something in it needs you.
@@ -81,12 +85,17 @@ export default class Spaces extends View {
     this.reviewFolded = new Set(JSON.parse(localStorage.getItem("review.folded") ?? "[]")); // repos whose Review row is closed
     this.watchingRemoval = new Set(); // space ids whose removal terminal is being polled right now
     cx.timer.every(2000, (cx) => this.pollRemovals(cx));
+    this.pr = {}; // where() -> { number, mergedAt, url } when the worktree's branch merged, else null/absent
+    this.prChecked = {}; // repo -> when GitHub was last asked about its worktree branches
+    this.asking = new Set(); // repos being asked right now
+    cx.timer.every(30000, (cx) => this.checkMerged(cx));
     // Keys reach this mod as "my-spaces.<command>" (keys.json). "remove-worktree" opens the
     // my-worktree dialog for the focused space as an overlay; mod.open would dock a copy instead.
     cx.spawn(async (cx) => {
       for (;;) {
         const c = await nextCommand();
         if (c === "remove-worktree") this.removeWorktree();
+        else if (c.startsWith("remove-merged")) this.removeMerged(c.slice("remove-merged".length).replace(/^[:\s]+/, ""));
         cx.notify();
       }
     });
@@ -184,6 +193,7 @@ export default class Spaces extends View {
         // Only git's own "no" is remembered as no repo; anything else is asked again.
         if (!/not a git repository/i.test(r.stderr)) this.unsure.add(key);
         this.git[key] = null;
+        delete this.pr[key];
         return;
       }
       // The repo's own .git folder names it; a worktree's top differs from it.
@@ -200,6 +210,7 @@ export default class Spaces extends View {
           info.behind = Math.abs(parseInt(b, 10)) || 0;
         }
       }
+      if (this.git[key]?.branch !== info.branch) delete this.pr[key];
       this.git[key] = info;
       if (!on) this.watch(repo, cx);
     } catch {
@@ -227,6 +238,86 @@ export default class Spaces extends View {
     const space = focused()?.space ?? spaces().find((s) => s.active)?.id;
     if (!space) return notify({ title: "No space is focused", level: "warning" });
     openOverlay({ mod: "my-worktree", kind: "dialog", width: 440, height: 260, props: { space, action: "remove" } });
+  }
+
+  // Worktree branches whose pull request merged: GitHub is asked per repo, every MERGED_EVERY,
+  // one search per branch in a single query. A hit counts only when the merged head is in the
+  // local history, so a reused branch name doesn't match somebody's old pull request.
+  checkMerged(cx) {
+    const now = Date.now();
+    const byRepo = {};
+    for (const [key, g] of Object.entries(this.git)) if (g?.linked && g.branch) (byRepo[g.repo] ??= []).push({ key, ...g });
+    for (const [repo, places] of Object.entries(byRepo)) {
+      if (this.asking.has(repo) || now - (this.prChecked[repo] ?? 0) < MERGED_EVERY) continue;
+      this.asking.add(repo);
+      cx.spawn(async (cx) => {
+        try {
+          await this.askMerged(JSON.parse(repo)[0], places);
+        } catch {
+          // Couldn't ask (the machine away, offline, gh missing or logged out): next time.
+        } finally {
+          this.prChecked[repo] = Date.now();
+          this.asking.delete(repo);
+          cx.notify();
+        }
+      });
+    }
+  }
+
+  async askMerged(on, places) {
+    const top = places[0].top;
+    const url = await exec("git", ["remote", "get-url", "origin"], { cwd: top, on });
+    const m = url.code === 0 && url.stdout.trim().match(/github\.com[:/]([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/);
+    if (!m) return; // not on GitHub: nothing to ask
+    const slug = `${m[1]}/${m[2]}`;
+    const fields = "{ nodes { ... on PullRequest { number mergedAt headRefOid url } } }";
+    const parts = places.map((p, i) => `b${i}: search(type: ISSUE, first: 1, query: ${JSON.stringify(`repo:${slug} is:pr is:merged head:${p.branch}`)}) ${fields}`);
+    const r = await exec("gh", ["api", "graphql", "-f", `query={ ${parts.join(" ")} }`], { cwd: top, on });
+    if (r.code !== 0) throw new Error(r.stderr || "gh api graphql failed");
+    const data = JSON.parse(r.stdout).data ?? {};
+    for (const [i, p] of places.entries()) {
+      const pr = data[`b${i}`]?.nodes?.[0];
+      let hit = null;
+      if (pr?.headRefOid) {
+        // The merged head is here (or on the tracking ref when this checkout is behind it).
+        const known = async (ref) => (await exec("git", ["merge-base", "--is-ancestor", pr.headRefOid, ref], { cwd: p.top, on })).code === 0;
+        if ((await known("HEAD")) || (await known("@{upstream}"))) hit = { number: pr.number, mergedAt: pr.mergedAt, url: pr.url };
+      }
+      if (this.git[p.key]?.branch !== p.branch) continue; // it moved meanwhile
+      this.pr[p.key] = hit;
+      if (hit) this.announceMerged(p, hit, on);
+    }
+  }
+
+  // One toast per merged pull request and worktree (shared "worktree.merged.seen": "<machine>|<top>"
+  // -> pr number, so a restart doesn't repeat it). Clicking opens that space's Remove dialog.
+  announceMerged(p, hit, on) {
+    const seen = shared("worktree.merged.seen") ?? {};
+    const id = `${on ?? ""}|${p.top}`;
+    if (seen[id] === hit.number) return;
+    const tops = new Set(Object.entries(this.git).filter(([, g]) => g?.top).map(([k, g]) => `${JSON.parse(k)[0] ?? ""}|${g.top}`));
+    const kept = Object.fromEntries(Object.entries(seen).filter(([k]) => tops.has(k)));
+    setShared("worktree.merged.seen", { ...kept, [id]: hit.number });
+    const ps = panes();
+    const space = spaces().find((s) => where(s, ps) === p.key);
+    notify({
+      title: `#${hit.number} merged`,
+      body: `${space?.name ?? p.branch}: remove its worktree?`,
+      level: "success",
+      timeout: 0,
+      action: space ? { name: `my-spaces.remove-merged:${space.id}`, args: { space: space.id } } : undefined,
+    });
+  }
+
+  // From the merged toast (remove-merged:<space>) or a key: that space's Remove dialog; without
+  // an id, the focused space when its branch merged, else the one merged space there is.
+  removeMerged(id) {
+    const ps = panes();
+    const merged = spaces().filter((s) => this.pr[where(s, ps)]);
+    const at = focused()?.space;
+    const space = spaces().find((s) => s.id === id) ?? merged.find((s) => s.id === at) ?? (merged.length === 1 ? merged[0] : null);
+    if (!space) return notify({ title: merged.length ? "Several worktrees merged" : "No merged worktree", body: merged.length ? "Focus the one to remove first." : undefined, level: "warning" });
+    openOverlay({ mod: "my-worktree", kind: "dialog", width: 440, height: 260, props: { space: space.id, action: "remove" } });
   }
 
   // Removals my-worktree started (shared "worktree.removing": space id -> { address, top, name }).
@@ -279,7 +370,7 @@ export default class Spaces extends View {
     const sp = spaces(), ps = panes();
     const ready = (w) => this.shown.has(w.id) || where(w, ps) in this.git || Date.now() - (this.born[w.id] ??= Date.now()) > 1500;
     for (const w of sp) if (!this.shown.has(w.id) && ready(w)) this.shown.add(w.id);
-    const list = sp.map((w, i) => ({ w, i, g: this.git[where(w, ps)] ?? null })).filter((r) => this.shown.has(r.w.id));
+    const list = sp.map((w, i) => ({ w, i, key: where(w, ps), g: this.git[where(w, ps)] ?? null })).filter((r) => this.shown.has(r.w.id));
     const mains = new Set(list.filter((r) => r.g && !r.g.linked).map((r) => r.g.repo));
     const nested = (r) => r.g?.linked && mains.has(r.g.repo);
     const out = [];
@@ -372,7 +463,7 @@ export default class Spaces extends View {
   // Only what's unusual, after the name: "herdr \u00b7 spike \u21912 \u21931". The repo or
   // branch goes when the name already says it (a worktree is named after its branch),
   // and master/main go: nearly every space is on one.
-  gitTail(g, tree, name, t) {
+  gitTail(g, tree, name, t, pr) {
     const raw = g.branch ?? "detached";
     const same = (a) => a.toLowerCase() === name.toLowerCase();
     const branch = same(raw) || raw === "master" || raw === "main" ? "" : raw;
@@ -387,12 +478,14 @@ export default class Spaces extends View {
       .text_size(11.5)
       .text_color(t.dim)
       .when(Boolean(where), (el) => el.child(div().min_w(0).truncate().child(where)))
-      .when(g.ahead > 0, (el) => el.child(div().flex_none().text_color(t.ansi2).child(`\u2191${g.ahead}`)))
-      .when(g.behind > 0, (el) => el.child(div().flex_none().text_color(t.ansi1).child(`\u2193${g.behind}`)));
+      .when(Boolean(pr), (el) => el.child(div().flex_none().px(4).rounded(4).bg(t.ansi2 + "26").text_color(t.ansi2).child(`merged #${pr.number}`)))
+      .when(!pr && g.ahead > 0, (el) => el.child(div().flex_none().text_color(t.ansi2).child(`\u2191${g.ahead}`)))
+      .when(!pr && g.behind > 0, (el) => el.child(div().flex_none().text_color(t.ansi1).child(`\u2193${g.behind}`)));
   }
 
-  row({ w, i, g, tree, review }, t) {
+  row({ w, i, g, key, tree, review }, t) {
     const on = w.active;
+    const pr = this.pr[key] ?? null;
     const removing = Boolean((shared("worktree.removing") ?? {})[w.id]);
     const mark = removing ? svg("mods/workspace-chrome/spinner.svg").size(12).flex_none().text_color(t.dim).spin(900) : agentMark(t, w.status);
     const colors = shared("space.colors") ?? {};
@@ -443,7 +536,7 @@ export default class Spaces extends View {
           .when(Boolean(tree), el => el.pl(22).child(svg("mods/workspace-chrome/branch.svg").size(13).text_color(t.dim)))
           .when(!tree, el => el.child(h_flex().size(18).flex_none().rounded(5).bg(fill).items_center().justify_center().text_size(10.5).font_bold().text_color("#ffffff").child([...w.name][0]?.toUpperCase() ?? "?")))
           .child(div().flex_shrink(0).max_w(150).truncate().text_color(removing ? t.dim : review ? t.muted : t.foreground).child(w.name))
-          .child(removing ? h_flex().flex_1().min_w(0).justify_end().text_size(11.5).text_color(t.dim).child("deleting…") : g ? this.gitTail(g, tree, w.name, t) : div().flex_1())
+          .child(removing ? h_flex().flex_1().min_w(0).justify_end().text_size(11.5).text_color(t.dim).child("deleting…") : g ? this.gitTail(g, tree, w.name, t, pr) : div().flex_1())
           .when(Boolean(mark), (el) => el.child(mark)),
       );
   }
