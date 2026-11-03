@@ -304,7 +304,7 @@ export default class Spaces extends View {
       title: `#${hit.number} merged`,
       body: `${space?.name ?? p.branch}: remove its worktree?`,
       level: "success",
-      timeout: 0,
+      timeout: 10 * 60000,
       action: space ? { name: `my-spaces.remove-merged:${space.id}`, args: { space: space.id } } : undefined,
     });
   }
