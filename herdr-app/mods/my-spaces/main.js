@@ -2,8 +2,10 @@
 // grouped by machine when more than one is known. After a space's name, the repo
 // its first terminal is in now, only where unusual: branch, ahead/behind. At the row's end, the
 // space's most urgent agent: a spinner while one works, "!" when one needs you, a dot when one
-// finished unseen; idle and agentless spaces stay quiet. Worktrees that are only here for
-// review (see kind.js) sit under a foldable "Review" row at the end of their repo's group.
+// finished unseen; idle and agentless spaces stay quiet. A repo's worktrees can sit in groups
+// (see kind.js): a foldable row each, after the loose worktrees. "Review" fills itself from
+// checkout.sh's label; others are made from the menu. A worktree dropped on a group's row, or on
+// a worktree in it, joins it; dropped on its repo's own row it leaves its group.
 // A worktree my-worktree is deleting shows a spinner and "deleting…" until git is done; then
 // this mod closes its space and toasts the result (the dialog itself is long closed by then).
 // A worktree whose branch's pull request merged (asked of GitHub now and then) shows
@@ -14,7 +16,7 @@
 import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
 import { spaces, machines, panes, terminals, focused, run, openOverlay, exec, hc, notify, theme, shared, setShared, watchFolder, window, layout, nextCommand } from "herdr";
-import { kindOf } from "./kind.js";
+import { kindOf, setKind, groupsOf, setGroups, NONE, REVIEW, REQUEST } from "./kind.js";
 
 function find(node, id) {
   if (node?.id === id) return node;
@@ -35,6 +37,7 @@ function place(s, ps) {
   return ps.find((p) => tabs.has(p.tab) && p.cwd)?.cwd || s.folder;
 }
 const rowHeight = ({ tree }) => (tree ? 28 : 30);
+const foldKey = (repo, group) => JSON.stringify([repo, group]);
 const where = (s, ps) => JSON.stringify([s.machine ?? null, place(s, ps)]);
 const base = (path) => path.replace(/\/+$/, "").split("/").pop();
 // Changes made outside Herdr (an editor's save, a commit in another app): looked
@@ -78,11 +81,19 @@ export default class Spaces extends View {
     // worktree appears under its repo instead of jumping there.
     this.shown = new Set(spaces().map((s) => s.id));
     this.born = {};
-    this.pressed = null;
-    this.over = null;
+    this.pressed = null; // index in spaces() of the row being dragged
+    this.over = null; // index of the row it's over
+    this.overGroup = null; // foldKey of the group row it's over
+    this.rows = []; // what ordered() gave the last render
     this.machines = [];
     this.folded = new Set(JSON.parse(localStorage.getItem("machines.folded") ?? "[]"));
-    this.reviewFolded = new Set(JSON.parse(localStorage.getItem("review.folded") ?? "[]")); // repos whose Review row is closed
+    this.groupFolded = new Set(JSON.parse(localStorage.getItem("groups.folded") ?? "[]")); // foldKeys of closed group rows
+    const old = JSON.parse(localStorage.getItem("review.folded") ?? "[]"); // older versions: repos whose Review row was closed
+    if (old.length) {
+      for (const repo of old) this.groupFolded.add(foldKey(repo, REVIEW));
+      this.saveFolds();
+      localStorage.removeItem("review.folded");
+    }
     this.watchingRemoval = new Set(); // space ids whose removal terminal is being polled right now
     cx.timer.every(2000, (cx) => this.pollRemovals(cx));
     this.pr = {}; // where() -> { number, mergedAt, url } when the worktree's branch merged, else null/absent
@@ -107,6 +118,7 @@ export default class Spaces extends View {
   }
 
   checkNew(cx) {
+    this.serveGroupRequest(cx);
     const now = Date.now();
     const sp = spaces();
     for (const s of sp) if (!this.shown.has(s.id)) this.born[s.id] ??= now;
@@ -364,8 +376,8 @@ export default class Spaces extends View {
     openOverlay({ mod: "my-menu", kind: "popup", width: 200, height: 300, props: { tab: "space", target: { id: w.id } } });
   }
 
-  // Spaces in order, each worktree space moved under its main checkout's: the ones being
-  // worked on first, then a "Review" row and the review worktrees (none while it's folded).
+  // Spaces in order, each worktree space moved under its main checkout's: the loose ones
+  // first, then each group's row and its worktrees (none while it's folded).
   ordered() {
     const sp = spaces(), ps = panes();
     const ready = (w) => this.shown.has(w.id) || where(w, ps) in this.git || Date.now() - (this.born[w.id] ??= Date.now()) > 1500;
@@ -382,39 +394,125 @@ export default class Spaces extends View {
       if (!r.g || r.g.linked || placed.has(r.g.repo)) continue;
       placed.add(r.g.repo);
       const kids = list.filter((k) => nested(k) && k.g.repo === r.g.repo);
-      const review = kids.filter((k) => kindOf(k.w, k.g.top, ts) === "review");
-      const work = kids.filter((k) => !review.includes(k));
-      const branch = (ks, last) => ks.forEach((k, n) => out.push({ ...k, tree: last && n === ks.length - 1 ? "└─" : "├─" }));
-      branch(work, !review.length);
-      if (!review.length) continue;
-      const folded = this.reviewFolded.has(r.g.repo);
-      const rank = { blocked: 3, done: 2, working: 1 };
-      const status = review.map((k) => k.w.status).reduce((a, b) => ((rank[b] ?? 0) > (rank[a] ?? 0) ? b : a), null);
-      out.push({ header: r.g.repo, machine: r.w.machine ?? null, count: review.length, folded, status });
-      if (!folded) branch(review, true);
+      const kind = new Map(kids.map((k) => [k, kindOf(k.w, k.g.top, ts)]));
+      const names = this.groups(r.g.repo, [...kind.values()]);
+      const branch = (ks, last, group) => ks.forEach((k, n) => out.push({ ...k, group, tree: last && n === ks.length - 1 ? "└─" : "├─" }));
+      branch(kids.filter((k) => kind.get(k) === NONE), !names.length, NONE);
+      names.forEach((name, n) => {
+        const members = kids.filter((k) => kind.get(k) === name);
+        const folded = this.groupFolded.has(foldKey(r.g.repo, name));
+        const rank = { blocked: 3, done: 2, working: 1 };
+        const status = members.map((k) => k.w.status).reduce((a, b) => ((rank[b] ?? 0) > (rank[a] ?? 0) ? b : a), null);
+        out.push({ header: name, repo: r.g.repo, machine: r.w.machine ?? null, count: members.length, folded, status });
+        if (!folded) branch(members, n === names.length - 1, name);
+      });
     }
     return out;
   }
 
-  // The "Review" row: click folds its worktrees away; while folded it carries their count and
-  // their most urgent agent, so nothing needing you hides behind it.
-  reviewHead({ header, count, folded, status }, t, collapsed) {
+  // A repo's groups in shown order: the ones made (kept even when empty), then any a worktree's
+  // mark names but the list doesn't. Those join the list, so the menu offers what this shows;
+  // only "Review" stays out of it, coming and going with its label as it always did.
+  groups(repo, kinds) {
+    const known = groupsOf(repo);
+    const names = [...new Set([...known, ...kinds.filter((k) => k !== NONE)])];
+    const keep = names.filter((n) => n !== REVIEW || known.includes(n));
+    if (keep.length !== known.length) setGroups(repo, keep);
+    return names;
+  }
+
+  // A repo's worktree spaces with their checkout, whether shown yet or not.
+  members(repo) {
+    const ps = panes();
+    return spaces().map((w) => ({ w, g: this.git[where(w, ps)] })).filter((m) => m.g?.linked && m.g.repo === repo);
+  }
+
+  // The worktree row being dragged, if the press is on one.
+  dragged() {
+    return this.pressed === null ? null : (this.rows.find((r) => r.w && r.i === this.pressed && r.g?.linked) ?? null);
+  }
+
+  saveFolds() {
+    localStorage.setItem("groups.folded", JSON.stringify([...this.groupFolded]));
+  }
+
+  // Requests my-menu and my-group leave (kind.js REQUEST), carried out here where the repo's
+  // worktrees are known, so a rename or a deletion reaches every member, labeled ones too.
+  serveGroupRequest(cx) {
+    const q = shared(REQUEST);
+    if (!q) return;
+    setShared(REQUEST, null);
+    const names = groupsOf(q.repo);
+    const to = (q.to ?? "").trim();
+    const taken = Boolean(to) && to !== q.name && names.includes(to);
+    if ((q.op === "new" || q.op === "rename") && (!to || taken))
+      return notify({ title: taken ? `There is a "${to}" group already` : "A group needs a name", level: "warning" });
+    const ts = terminals();
+    const all = this.members(q.repo);
+    const mine = all.filter((m) => kindOf(m.w, m.g.top, ts) === q.name);
+    if (q.op === "new") {
+      if (!names.includes(to)) setGroups(q.repo, [...names, to]);
+      const s = q.space && all.find((m) => m.w.id === q.space);
+      if (s) setKind(s.w, s.g.top, to);
+      this.groupFolded.delete(foldKey(q.repo, to));
+    } else if (q.op === "rename") {
+      if (to === q.name) return;
+      setGroups(q.repo, names.map((n) => (n === q.name ? to : n)));
+      for (const m of mine) setKind(m.w, m.g.top, to);
+      if (this.groupFolded.delete(foldKey(q.repo, q.name))) this.groupFolded.add(foldKey(q.repo, to));
+    } else if (q.op === "delete") {
+      setGroups(q.repo, names.filter((n) => n !== q.name));
+      for (const m of mine) setKind(m.w, m.g.top, NONE);
+      this.groupFolded.delete(foldKey(q.repo, q.name));
+    }
+    this.saveFolds();
+    cx.notify();
+  }
+
+  groupMenu(repo, group) {
+    openOverlay({ mod: "my-menu", kind: "popup", width: 200, height: 300, props: { tab: "group", target: { repo, group } } });
+  }
+
+  // A group's row: click folds its worktrees away; while folded it carries their count and
+  // their most urgent agent, so nothing needing you hides behind it. Right-click renames or
+  // deletes the group; a worktree of the repo dropped on the row joins it.
+  groupHead({ header, repo, count, folded, status }, t, collapsed) {
+    const key = foldKey(repo, header);
     const toggle = (_e, cx) => {
-      folded ? this.reviewFolded.delete(header) : this.reviewFolded.add(header);
-      localStorage.setItem("review.folded", JSON.stringify([...this.reviewFolded]));
+      folded ? this.groupFolded.delete(key) : this.groupFolded.add(key);
+      this.saveFolds();
       cx.notify();
     };
     const mark = folded ? agentMark(t, status) : null;
     if (collapsed)
-      return h_flex().id(`review-${header}`).h(16).flex_none().px(6).gap(3).items_center().justify_center().cursor_pointer().on_click(toggle)
+      return h_flex().id(`group-${key}`).h(16).flex_none().px(6).gap(3).items_center().justify_center().cursor_pointer().on_click(toggle)
         .child(div().flex_1().h(1).bg(t.border))
         .when(Boolean(mark), (el) => el.child(mark));
-    return h_flex().id(`review-${header}`).h(24).flex_none().pl(30).pr(8).gap(6).items_center().rounded(7)
+    const takes = this.dragged()?.g.repo === repo; // a worktree of this repo is being dragged
+    return h_flex().id(`group-${key}`).h(24).flex_none().pl(30).pr(8).gap(6).items_center().rounded(7)
       .text_size(11).text_color(t.dim).cursor_pointer().hover((s) => s.bg(t.hover))
+      .when(takes && this.overGroup === key, (el) => el.bg(t.selected).text_color(t.foreground))
       .on_click(toggle)
-      .child(svg("mods/workspace-chrome/git-compare.svg").size(12).flex_none())
-      .child(div().flex_1().truncate().child("Review"))
-      .when(folded, (el) => el.child(div().flex_none().child(String(count))))
+      .on_mouse_down("right", () => this.groupMenu(repo, header))
+      .on_mouse_move((_e, cx) => {
+        const over = takes ? key : null;
+        if (this.pressed !== null && (this.overGroup !== over || this.over !== null)) {
+          this.overGroup = over;
+          this.over = null;
+          cx.notify();
+        }
+      })
+      .on_mouse_up("left", (_e, cx) => {
+        const from = this.dragged();
+        this.pressed = null;
+        this.over = null;
+        this.overGroup = null;
+        if (from && takes) setKind(from.w, from.g.top, header);
+        cx.notify();
+      })
+      .child(svg(`mods/workspace-chrome/${header === REVIEW ? "git-compare" : "layers"}.svg`).size(12).flex_none())
+      .child(div().flex_1().truncate().child(header))
+      .when(folded || !count, (el) => el.child(div().flex_none().child(count ? String(count) : "empty")))
       .when(Boolean(mark), (el) => el.child(mark))
       .child(svg(`mods/workspace-chrome/chevron-${folded ? "right" : "down"}.svg`).size(11).flex_none());
   }
@@ -422,7 +520,8 @@ export default class Spaces extends View {
   // The rows, under a header per machine once one isn't this computer.
   grouped(t, collapsed) {
     const rows = this.ordered();
-    const draw = (r) => (r.header ? this.reviewHead(r, t, collapsed) : collapsed ? this.compact(r, t) : this.row(r, t));
+    this.rows = rows;
+    const draw = (r) => (r.header ? this.groupHead(r, t, collapsed) : collapsed ? this.compact(r, t) : this.row(r, t));
     const machineOf = (r) => (r.header ? r.machine : r.w.machine ?? null);
     const remote = [...new Set([...rows.map(machineOf).filter(Boolean), ...this.machines.map(m => m.name)])].sort();
     const loading = m => {
@@ -483,7 +582,7 @@ export default class Spaces extends View {
       .when(!pr && g.behind > 0, (el) => el.child(div().flex_none().text_color(t.ansi1).child(`\u2193${g.behind}`)));
   }
 
-  row({ w, i, g, key, tree, review }, t) {
+  row({ w, i, g, key, tree, group }, t) {
     const on = w.active;
     const pr = this.pr[key] ?? null;
     const removing = Boolean((shared("worktree.removing") ?? {})[w.id]);
@@ -510,22 +609,30 @@ export default class Spaces extends View {
       .on_mouse_down("left", () => {
         this.pressed = i;
         this.over = i;
+        this.overGroup = null;
       })
       .on_mouse_move((_e, cx) => {
         const source = spaces()[this.pressed];
         const over = source && (source.machine ?? null) === (w.machine ?? null) ? i : null;
-        if (this.pressed !== null && this.over !== over) {
+        if (this.pressed !== null && (this.over !== over || this.overGroup !== null)) {
           this.over = over;
+          this.overGroup = null;
           cx.notify();
         }
       })
       .on_mouse_up("left", (_e, cx) => {
         const from = this.pressed;
         const over = this.over;
+        const src = this.dragged();
         this.pressed = null;
         this.over = null;
-        if (from !== null && over === i && from !== i) run("space.move", { id: spaces()[from].id, index: i + 1 });
-        else if (from === i) run("space.select", { id: w.id });
+        this.overGroup = null;
+        if (from !== null && over === i && from !== i) {
+          run("space.move", { id: spaces()[from].id, index: i + 1 });
+          // Dropped among its repo's worktrees: it takes that spot's group (its repo's own row: none).
+          const into = tree ? group : g && !g.linked ? NONE : undefined;
+          if (src && into !== undefined && src.g.repo === g?.repo && into !== src.group) setKind(src.w, src.g.top, into);
+        } else if (from === i) run("space.select", { id: w.id });
         cx.notify();
       })
       .on_mouse_down("right", () => this.menu(w))
@@ -535,7 +642,7 @@ export default class Spaces extends View {
           .items_center()
           .when(Boolean(tree), el => el.pl(22).child(svg("mods/workspace-chrome/branch.svg").size(13).text_color(t.dim)))
           .when(!tree, el => el.child(h_flex().size(18).flex_none().rounded(5).bg(fill).items_center().justify_center().text_size(10.5).font_bold().text_color("#ffffff").child([...w.name][0]?.toUpperCase() ?? "?")))
-          .child(div().flex_shrink(0).max_w(150).truncate().text_color(removing ? t.dim : review ? t.muted : t.foreground).child(w.name))
+          .child(div().flex_shrink(0).max_w(150).truncate().text_color(removing ? t.dim : t.foreground).child(w.name))
           .child(removing ? h_flex().flex_1().min_w(0).justify_end().text_size(11.5).text_color(t.dim).child("deleting…") : g ? this.gitTail(g, tree, w.name, t, pr) : div().flex_1())
           .when(Boolean(mark), (el) => el.child(mark)),
       );
@@ -576,7 +683,7 @@ export default class Spaces extends View {
         .child(div().id("space-new").size(26).flex_none().flex().items_center().justify_center().rounded(6).hover(s => s.bg(t.hover).text_color(t.foreground))
           .on_click(() => run("space.new")).child(svg("mods/workspace-chrome/plus.svg").size(14))))
       .child(v_flex().flex_1().min_h(0).px(8).pb(14).overflow_y_scrollbar().mode("always")
-        .on_mouse_up("left", (_e, cx) => { this.pressed = null; cx.notify(); })
+        .on_mouse_up("left", (_e, cx) => { this.pressed = null; this.over = null; this.overGroup = null; cx.notify(); })
         .children(this.grouped(t, collapsed)));
   }
 }

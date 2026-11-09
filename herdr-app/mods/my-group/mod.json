@@ -1,0 +1,12 @@
+{
+  "place": "none",
+  "overlay": {
+    "kind": "dialog",
+    "width": 360,
+    "height": 196
+  },
+  "cloned_from": {
+    "name": "prompt",
+    "version": "0.1.11"
+  }
+}

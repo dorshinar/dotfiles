@@ -1,14 +1,16 @@
 // Context menus (Herdr's items). Opened as a popup with
 // props { tab: "pane" | "tab" | "space" | "global", target }.
 // ↑/↓ move, Enter runs, Esc closes. An item is [label, command, args];
-// a command "worktree" opens the worktree dialog instead, "kind" marks a worktree
-// space as review (or mine again) for the spaces list. (Personal clone of the shipped
-// `menu` mod, opened by my-spaces; only the "kind" item is new.)
+// a command "worktree" opens the worktree dialog instead; the "group-*" ones move a worktree
+// space between the groups of the spaces list and make, rename or delete those groups (a name
+// is asked for in the my-group dialog; the change itself is my-spaces's, see kind.js REQUEST).
+// (Personal clone of the shipped `menu` mod, opened by my-spaces; the group items and the
+// "group" tab, for a group's row, are new.)
 
 import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
 import { run, props, closeOverlay, openOverlay, theme, keys, terminals, spaces, panes, exec } from "herdr";
-import { kindOf, toggleKind } from "./kind.js";
+import { kindOf, setKind, groupsOf, request, NONE, REVIEW } from "./kind.js";
 
 // Where a space is now: its first terminal's live folder, else where it was made.
 function place(s) {
@@ -16,13 +18,14 @@ function place(s) {
   return panes().find((p) => tabs.has(p.tab) && p.cwd)?.cwd || s.folder;
 }
 
-// A space's checkout: { kind: "main" (a repo's own) | "linked" (a worktree), top }, or null.
+// A space's checkout: { kind: "main" (a repo's own) | "linked" (a worktree), top, repo }, or
+// null. `repo` is the key my-spaces files the repo's groups under.
 async function checkout(folder, on) {
   const top = await exec("git", ["rev-parse", "--show-toplevel"], { cwd: folder, on });
   const common = await exec("git", ["rev-parse", "--path-format=absolute", "--git-common-dir"], { cwd: folder, on });
   if (top.code !== 0 || common.code !== 0) return null;
   const root = top.stdout.trim();
-  return { kind: common.stdout.trim() === `${root}/.git` ? "main" : "linked", top: root };
+  return { kind: common.stdout.trim() === `${root}/.git` ? "main" : "linked", top: root, repo: JSON.stringify([on ?? null, common.stdout.trim()]) };
 }
 
 function items(p, git) {
@@ -59,14 +62,23 @@ function items(p, git) {
       ];
     case "space": {
       const space = git?.kind === "linked" && spaces().find((s) => s.id === tg.id);
+      const now = space ? kindOf(space, git.top) : null;
       return [
         ["Rename", "space.rename", { id: tg.id }],
         ...(git ? [["New worktree", "worktree", { space: tg.id, action: "new" }], ["Open worktree", "worktree", { space: tg.id, action: "open" }]] : []),
         ...(git?.kind === "linked" ? [["Remove worktree", "worktree", { space: tg.id, action: "remove" }]] : []),
-        ...(space ? [[kindOf(space, git.top) === "review" ? "Mark as mine" : "Mark as review", "kind", { space, top: git.top }]] : []),
+        ...(space ? [...new Set([...groupsOf(git.repo), REVIEW])].filter((g) => g !== now).map((g) => [`Move to ${g}`, "group-move", { space, top: git.top, group: g }]) : []),
+        ...(space && now !== NONE ? [[`Remove from ${now}`, "group-move", { space, top: git.top, group: NONE }]] : []),
+        ...(git ? [["New group…", "group-new", { repo: git.repo, ...(space ? { space: tg.id } : {}) }]] : []),
         ["Close", "space.close", { id: tg.id }],
       ];
     }
+    case "group":
+      return [
+        ["Rename group", "group-rename", { repo: tg.repo, name: tg.group }],
+        ["New group…", "group-new", { repo: tg.repo }],
+        ["Delete group", "group-delete", { repo: tg.repo, name: tg.group }],
+      ];
     default:
       return [
         ["New space", "space.new", {}],
@@ -80,7 +92,7 @@ function items(p, git) {
 }
 
 function menuIcon(command) {
-  const name = command.endsWith(".close") ? "x" : command.endsWith(".rename") ? "square-pen" : command.endsWith(".new") ? "plus" : command === "worktree" ? "git-branch" : command === "kind" ? "git-compare" : command === "app.help" ? "terminal" : command === "app.theme" ? "settings" : command === "pane.split" ? "panel-right" : command === "pane.zoom" ? "square" : "terminal";
+  const name = command.endsWith(".close") || command === "group-delete" ? "x" : command.endsWith(".rename") || command === "group-rename" ? "square-pen" : command.endsWith(".new") ? "plus" : command === "worktree" ? "git-branch" : command === "group-move" ? "layers" : command === "group-new" ? "folder-plus" : command === "app.help" ? "terminal" : command === "app.theme" ? "settings" : command === "pane.split" ? "panel-right" : command === "pane.zoom" ? "square" : "terminal";
   return `mods/workspace-chrome/${name}.svg`;
 }
 
@@ -114,7 +126,10 @@ export default class Menu extends View {
     closeOverlay(props()?.overlay);
     // Removal goes through my-worktree, which deletes in the background (see that mod's header).
     if (it[1] === "worktree") openOverlay({ mod: it[2].action === "remove" ? "my-worktree" : "worktree", kind: "dialog", ...(it[2].action === "open" ? { width: 560, height: 480 } : { width: 440, height: 260 }), props: it[2] });
-    else if (it[1] === "kind") toggleKind(it[2].space, it[2].top);
+    else if (it[1] === "group-move") setKind(it[2].space, it[2].top, it[2].group);
+    else if (it[1] === "group-delete") request({ op: "delete", ...it[2] });
+    else if (it[1] === "group-new" || it[1] === "group-rename")
+      openOverlay({ mod: "my-group", kind: "dialog", width: 360, height: 196, props: { title: it[1] === "group-new" ? "New group" : `Rename ${it[2].name}`, value: it[2].name ?? "", request: { op: it[1].slice(6), ...it[2] } } });
     else run(it[1], it[2]);
   }
 
@@ -140,7 +155,7 @@ export default class Menu extends View {
       .children(
         list.map((it, i) =>
           v_flex()
-            .when(i > 0 && (it[1].endsWith(".close") || it[1] === "app.help" || (it[1] === "app.theme" && list[i - 1][1] !== "app.theme")), el => el.child(div().mx(7).my(4).h(1).bg(t.border)))
+            .when(i > 0 && (it[1].endsWith(".close") || it[1] === "app.help" || (it[1] === "app.theme" && list[i - 1][1] !== "app.theme") || (it[1].startsWith("group-") && !list[i - 1][1].startsWith("group-"))), el => el.child(div().mx(7).my(4).h(1).bg(t.border)))
             .child(h_flex()
             .id(`mi-${i}`)
             .h(31)
