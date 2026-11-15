@@ -10,7 +10,8 @@
 // this mod closes its space and toasts the result (the dialog itself is long closed by then).
 // A worktree whose branch's pull request merged (asked of GitHub now and then) shows
 // "merged #n" and gets one toast; clicking it opens that worktree's Remove dialog.
-// Click to switch, right-click for its menu, drag to reorder. (Personal clone of the shipped
+// Click to switch, right-click for its menu, drag to reorder; the "prev" and "next" commands
+// step through the rows as shown. (Personal clone of the shipped
 // `spaces` mod; the agent mark, the review group, the my-menu menu and the removal watch are new.)
 
 import { View, div, svg } from "gpui-kit";
@@ -39,6 +40,7 @@ function place(s, ps) {
 const rowHeight = ({ tree }) => (tree ? 28 : 30);
 const foldKey = (repo, group) => JSON.stringify([repo, group]);
 const where = (s, ps) => JSON.stringify([s.machine ?? null, place(s, ps)]);
+const machineOf = (r) => (r.header ? r.machine : r.w.machine ?? null);
 const base = (path) => path.replace(/\/+$/, "").split("/").pop();
 // Changes made outside Herdr (an editor's save, a commit in another app): looked
 // for this often, in repos the list shows, while the window is in front.
@@ -102,10 +104,12 @@ export default class Spaces extends View {
     cx.timer.every(30000, (cx) => this.checkMerged(cx));
     // Keys reach this mod as "my-spaces.<command>" (keys.json). "remove-worktree" opens the
     // my-worktree dialog for the focused space as an overlay; mod.open would dock a copy instead.
+    // "prev" and "next" stand in for space.prev and space.next, which go by spaces()' order.
     cx.spawn(async (cx) => {
       for (;;) {
         const c = await nextCommand();
         if (c === "remove-worktree") this.removeWorktree();
+        else if (c === "prev" || c === "next") this.step(c === "next" ? 1 : -1);
         else if (c.startsWith("remove-merged")) this.removeMerged(c.slice("remove-merged".length).replace(/^[:\s]+/, ""));
         cx.notify();
       }
@@ -377,8 +381,9 @@ export default class Spaces extends View {
   }
 
   // Spaces in order, each worktree space moved under its main checkout's: the loose ones
-  // first, then each group's row and its worktrees (none while it's folded).
-  ordered() {
+  // first, then each group's row and its worktrees (none while it's folded, unless `all`:
+  // then they come marked `folded`).
+  ordered(all = false) {
     const sp = spaces(), ps = panes();
     const ready = (w) => this.shown.has(w.id) || where(w, ps) in this.git || Date.now() - (this.born[w.id] ??= Date.now()) > 1500;
     for (const w of sp) if (!this.shown.has(w.id) && ready(w)) this.shown.add(w.id);
@@ -396,7 +401,7 @@ export default class Spaces extends View {
       const kids = list.filter((k) => nested(k) && k.g.repo === r.g.repo);
       const kind = new Map(kids.map((k) => [k, kindOf(k.w, k.g.top, ts)]));
       const names = this.groups(r.g.repo, [...kind.values()]);
-      const branch = (ks, last, group) => ks.forEach((k, n) => out.push({ ...k, group, tree: last && n === ks.length - 1 ? "└─" : "├─" }));
+      const branch = (ks, last, group, folded = false) => ks.forEach((k, n) => out.push({ ...k, group, folded, tree: last && n === ks.length - 1 ? "└─" : "├─" }));
       branch(kids.filter((k) => kind.get(k) === NONE), !names.length, NONE);
       names.forEach((name, n) => {
         const members = kids.filter((k) => kind.get(k) === name);
@@ -404,10 +409,32 @@ export default class Spaces extends View {
         const rank = { blocked: 3, done: 2, working: 1 };
         const status = members.map((k) => k.w.status).reduce((a, b) => ((rank[b] ?? 0) > (rank[a] ?? 0) ? b : a), null);
         out.push({ header: name, repo: r.g.repo, machine: r.w.machine ?? null, count: members.length, folded, status });
-        if (!folded) branch(members, n === names.length - 1, name);
+        if (!folded || all) branch(members, n === names.length - 1, name, folded);
       });
     }
     return out;
+  }
+
+  // The machines that get a header, by name: this computer leads them once there is one.
+  remotes(rows) {
+    return [...new Set([...rows.map(machineOf).filter(Boolean), ...this.machines.map((m) => m.name)])].sort();
+  }
+
+  // The space a row up (-1) or down (1) from the one in front, as the list shows them: machine
+  // by machine, worktrees under their checkout, around at the ends. Folded rows are passed over;
+  // from a space inside a fold it goes to the nearest row showing.
+  step(by) {
+    const rows = this.ordered(true).filter((r) => r.w);
+    const remote = this.remotes(rows);
+    const walk = [null, ...remote].flatMap((m) => rows.filter((r) => machineOf(r) === m));
+    const hidden = (r) => r.folded || (remote.length > 0 && this.folded.has(machineOf(r)));
+    const n = walk.length;
+    const at = walk.findIndex((r) => r.w.active);
+    const from = at < 0 && by < 0 ? 0 : at;
+    for (let k = 1; k <= n; k++) {
+      const r = walk[(((from + by * k) % n) + n) % n];
+      if (!hidden(r)) return run("space.select", { id: r.w.id });
+    }
   }
 
   // A repo's groups in shown order: the ones made (kept even when empty), then any a worktree's
@@ -522,8 +549,7 @@ export default class Spaces extends View {
     const rows = this.ordered();
     this.rows = rows;
     const draw = (r) => (r.header ? this.groupHead(r, t, collapsed) : collapsed ? this.compact(r, t) : this.row(r, t));
-    const machineOf = (r) => (r.header ? r.machine : r.w.machine ?? null);
-    const remote = [...new Set([...rows.map(machineOf).filter(Boolean), ...this.machines.map(m => m.name)])].sort();
+    const remote = this.remotes(rows);
     const loading = m => {
       const layout = machines().find(k => k.name === m)?.layout;
       return layout === "loading" || (!layout && this.machines.some(k => k.name === m && k.state === "connected"))
